@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import ProfileImageUpload from './ProfileImageUpload';
 
 interface Story {
   id: string;
@@ -553,6 +554,21 @@ const GameRoom: React.FC = () => {
     }
   }, [roomId, token, fetchCompletedStories]);
 
+  const handleProfileImageUpdate = (newImageUrl: string) => {
+    // Opdater brugerens profilbillede i deltagerlisten
+    setRoom(prev => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        participants: prev.participants.map(p => 
+          p.id === userId 
+            ? { ...p, profile_image: newImageUrl }
+            : p
+        )
+      };
+    });
+  };
+
   if (error) {
     return <div className="text-red-600 p-4">{error}</div>;
   }
@@ -565,6 +581,34 @@ const GameRoom: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-100">
+      {/* Top bar med profilbillede upload */}
+      <div className="bg-white shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 py-2 flex justify-end items-center">
+          
+          <div className="flex items-center space-x-4">
+            <ProfileImageUpload onImageUpdated={handleProfileImageUpdate} />
+            <div className="flex items-center space-x-2">
+              {room?.participants.find(p => p.id === userId)?.profile_image ? (
+                <img 
+                  src={`http://localhost:8080${room.participants.find(p => p.id === userId)?.profile_image}`} 
+                  alt="Profile" 
+                  className="w-8 h-8 rounded-full object-cover"
+                />
+              ) : (
+                <div className="w-8 h-8 rounded-full bg-purple-200 flex items-center justify-center">
+                  <span className="text-sm font-medium text-purple-600">
+                    {room?.participants.find(p => p.id === userId)?.username.charAt(0).toUpperCase()}
+                  </span>
+                </div>
+              )}
+              <span className="text-gray-700">
+                {room?.participants.find(p => p.id === userId)?.username}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {error && (
         <div className="p-4 bg-red-100 text-red-700 rounded-lg">
           {error}
@@ -592,59 +636,16 @@ const GameRoom: React.FC = () => {
 
                   {/* Vis stemmer */}
                   <div className="mb-4">
-                    <h4 className="font-medium mb-2">Stemmer:</h4>
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                      {room.current_story.votes.map((vote) => (
-                        <div key={vote.user_id} className="flex items-center space-x-2 p-2 bg-gray-50 rounded-lg">
-                          {vote.profile_image ? (
-                            <img src={vote.profile_image} alt={vote.username} className="w-8 h-8 rounded-full" />
-                          ) : (
-                            <div className="w-8 h-8 rounded-full bg-purple-200 flex items-center justify-center">
-                              <span className="text-sm font-medium text-purple-600">
-                                {vote.username.charAt(0).toUpperCase()}
-                              </span>
-                            </div>
-                          )}
-                          <div>
-                            <p className="font-medium">{vote.username}</p>
-                            <p className="text-purple-600 font-bold">{showResults ? vote.value : '?'}</p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
+                    <h4 className="font-medium mb-2">Status:</h4>
+                    <p className="text-gray-600">
+                      {isVotingOpen 
+                        ? `${room.current_story.votes.length} af ${room.participants.length} har stemt`
+                        : showResults 
+                          ? 'Afstemning afsluttet'
+                          : 'Venter på at afstemningen starter'
+                      }
+                    </p>
                   </div>
-
-                  {showResults ? (
-                    <div className="space-y-4">
-                      <h4 className="font-medium">Afstemning afsluttet</h4>
-                      {room.admin_id === userId ? (
-                        <div className="space-y-2">
-                          <input
-                            type="number"
-                            value={editableScore}
-                            onChange={(e) => setEditableScore(e.target.value === '' ? '' : Number(e.target.value))}
-                            className="w-full p-2 border rounded"
-                            placeholder="Juster endelig score..."
-                          />
-                          <button
-                            onClick={saveFinalScore}
-                            className="w-full px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600"
-                          >
-                            Gem endelig score
-                          </button>
-                        </div>
-                      ) : (
-                        <p>Venter på at admin gemmer den endelige score...</p>
-                      )}
-                    </div>
-                  ) : room.admin_id === userId && !isVotingOpen && (
-                    <button
-                      onClick={startVoting}
-                      className="w-full px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
-                    >
-                      Start afstemning
-                    </button>
-                  )}
                 </div>
               ) : room?.admin_id === userId && (
                 <div className="bg-white rounded-lg p-4 shadow">
@@ -677,27 +678,109 @@ const GameRoom: React.FC = () => {
           </div>
 
           <div className="w-full mt-5">
-              <div className="bg-white rounded-lg p-4 shadow">
-                <h3 className="text-lg font-semibold mb-4">Deltagere</h3>
-                <div className="space-y-2">
-                  {room?.participants.map(participant => (
-                    <div key={participant.id} className="flex items-center gap-2">
-                      {participant.profile_image ? (
-                        <img src={participant.profile_image} alt={participant.username} className="w-8 h-8 rounded-full" />
-                      ) : (
-                        <div className="w-8 h-8 rounded-full bg-purple-200 flex items-center justify-center">
-                          <span className="text-sm font-medium text-purple-600">
-                            {participant.username.charAt(0).toUpperCase()}
-                          </span>
+              <div className="bg-white rounded-lg p-8 shadow">
+                <div className="relative flex justify-center items-center min-h-[500px]">
+                  {/* Cirkel container med forbedret størrelse */}
+                  <div className="relative w-[500px] h-[500px]">
+                    {/* Deltagere i cirkel */}
+                    {room?.participants.map((participant, index) => {
+                      // Beregn vinklen med offset for at starte fra toppen
+                      const angleOffset = -90; // Start fra toppen (12 o'clock position)
+                      const angleStep = 360 / room.participants.length;
+                      const angle = angleOffset + (index * angleStep);
+                      const radius = 200; // Større radius for bedre spacing
+                      
+                      // Beregn position med trigonometri
+                      const x = Math.cos(angle * (Math.PI / 180)) * radius + 250;
+                      const y = Math.sin(angle * (Math.PI / 180)) * radius + 250;
+                      
+                      return (
+                        <div
+                          key={participant.id}
+                          className="absolute transform -translate-x-1/2 -translate-y-1/2 transition-all duration-300 ease-in-out"
+                          style={{
+                            left: `${x}px`,
+                            top: `${y}px`,
+                          }}
+                        >
+                          <div className="flex flex-col items-center space-y-2">
+                            <div className="relative">
+                              {participant.profile_image ? (
+                                <img 
+                                  src={`http://localhost:8080${participant.profile_image}`} 
+                                  alt={participant.username} 
+                                  className="w-16 h-16 rounded-full object-cover border-4 border-purple-500 shadow-lg hover:scale-110 transition-transform duration-200"
+                                />
+                              ) : (
+                                <div className="w-16 h-16 rounded-full bg-purple-200 flex items-center justify-center border-4 border-purple-500 shadow-lg hover:scale-110 transition-transform duration-200">
+                                  <span className="text-xl font-bold text-purple-600">
+                                    {participant.username.charAt(0).toUpperCase()}
+                                  </span>
+                                </div>
+                              )}
+                              {participant.id === room.admin_id && (
+                                <span className="absolute -top-1 -right-1 bg-purple-500 text-white text-xs px-2 py-0.5 rounded-full shadow-md">
+                                  Admin
+                                </span>
+                              )}
+                              {/* Online status indikator */}
+                              <div className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-white ${isConnected ? 'bg-green-500' : 'bg-gray-400'}`} />
+                              
+                              {/* Vis stemme hvis afstemning er i gang eller afsluttet */}
+                              {room.current_story && (isVotingOpen || showResults) && (
+                                <div className="absolute -right-12 top-1/2 transform -translate-y-1/2">
+                                  <div className={`
+                                    w-10 h-10 rounded-full 
+                                    ${room.current_story.votes.some(v => v.user_id === participant.id) 
+                                      ? 'bg-purple-500 text-white' 
+                                      : 'bg-gray-200 text-gray-400'} 
+                                    flex items-center justify-center font-bold shadow-md
+                                    ${!showResults && room.current_story.votes.some(v => v.user_id === participant.id) ? 'bg-green-500' : ''}
+                                  `}>
+                                    {showResults 
+                                      ? room.current_story.votes.find(v => v.user_id === participant.id)?.value || '-'
+                                      : room.current_story.votes.some(v => v.user_id === participant.id) ? '✓' : '?'
+                                    }
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                            <div className="bg-white px-3 py-1.5 rounded-full shadow-md">
+                              <span className="text-sm font-medium text-gray-700 whitespace-nowrap">
+                                {participant.username}
+                              </span>
+                            </div>
+                          </div>
                         </div>
-                      )}
-                      <span className="flex-1">{participant.username}</span>
-                      {participant.id === room.admin_id && (
-                        <span className="text-xs bg-purple-100 text-purple-600 px-2 py-1 rounded">Admin</span>
-                      )}
-                      <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-gray-300'}`} />
+                      );
+                    })}
+                    
+                    {/* Centrum indhold med forbedret design */}
+                    <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+                      <div className="bg-white rounded-2xl shadow-xl p-6 w-56 text-center border-2 border-purple-100">
+                        <h3 className="font-bold text-xl text-purple-600 mb-3">{room.name}</h3>
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between px-2 py-1 bg-purple-50 rounded-lg">
+                            <span className="text-sm text-purple-600">Deltagere</span>
+                            <span className="font-bold text-purple-700">{room.participants.length}</span>
+                          </div>
+                          <div className="flex items-center justify-between px-2 py-1 bg-purple-50 rounded-lg">
+                            <span className="text-sm text-purple-600">Historier</span>
+                            <span className="font-bold text-purple-700">{completedStories.length}</span>
+                          </div>
+                          <div className="flex items-center justify-between px-2 py-1 bg-purple-50 rounded-lg">
+                            <span className="text-sm text-purple-600">Gennemsnit</span>
+                            <span className="font-bold text-purple-700">
+                              {completedStories.length > 0 
+                                ? (completedStories.reduce((acc, story) => acc + story.final_score, 0) / completedStories.length).toFixed(1)
+                                : '-'
+                              }
+                            </span>
+                          </div>
+                        </div>
+                      </div>
                     </div>
-                  ))}
+                  </div>
                 </div>
               </div>
             </div>

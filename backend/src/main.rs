@@ -53,6 +53,8 @@ async fn main() -> std::io::Result<()> {
             .service(game_room::get_room)
             .service(game_room::get_completed_stories)
             .service(game_room::room_ws)
+            .service(handlers::user::upload_profile_image)
+            .service(actix_files::Files::new("/uploads", "uploads").show_files_listing())
     })
     .bind("127.0.0.1:8080")?
     .run()
