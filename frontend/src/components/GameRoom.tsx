@@ -2,6 +2,9 @@ import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import ProfileImageUpload from './ProfileImageUpload';
+import EmojiPicker from 'emoji-picker-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useFloating, offset, shift, flip, arrow } from '@floating-ui/react';
 
 interface Story {
   id: string;
@@ -49,6 +52,13 @@ interface CompletedStory {
   completed_at: number;
 }
 
+interface EmojiReaction {
+  emoji: string;
+  fromUserId: string;
+  toUserId: string;
+  timestamp: number;
+}
+
 const GameRoom: React.FC = () => {
   const { roomId } = useParams<{ roomId: string }>();
   const { token, userId } = useAuth();
@@ -65,6 +75,20 @@ const GameRoom: React.FC = () => {
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<number | undefined>(undefined);
   const [completedStories, setCompletedStories] = useState<CompletedStory[]>([]);
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [emojiReactions, setEmojiReactions] = useState<EmojiReaction[]>([]);
+  const arrowRef = useRef(null);
+  
+  const { x, y, strategy, refs, middlewareData } = useFloating({
+    placement: 'top',
+    middleware: [
+      offset(10),
+      flip(),
+      shift(),
+      arrow({ element: arrowRef })
+    ],
+  });
 
   const fetchRoom = useCallback(async () => {
     try {
@@ -281,6 +305,10 @@ const GameRoom: React.FC = () => {
                 });
                 
                 console.log('=== COMPLETED STORY HÅNDTERING AFSLUTTET ===');
+                break;
+                
+              case 'emoji_reaction':
+                handleEmojiReaction(message.content);
                 break;
                 
               default:
@@ -569,6 +597,109 @@ const GameRoom: React.FC = () => {
     });
   };
 
+  // Håndter emoji-klik på en brugers profilbillede
+  const handleProfileClick = (participantId: string) => {
+    if (participantId === userId) return; // Kan ikke sende emojis til sig selv
+    setSelectedUserId(participantId);
+    setShowEmojiPicker(true);
+  };
+
+  // Send emoji-reaktion
+  const sendEmojiReaction = (emoji: string, toUserId: string) => {
+    if (!wsRef.current || !userId) return;
+    
+    const reaction: EmojiReaction = {
+      emoji,
+      fromUserId: userId,
+      toUserId,
+      timestamp: Date.now()
+    };
+    
+    wsRef.current.send(JSON.stringify({
+      message_type: 'emoji_reaction',
+      content: reaction,
+      room_id: roomId,
+      user_id: userId
+    }));
+    
+    // Tilføj reaktionen lokalt med det samme for øjeblikkelig feedback
+    setEmojiReactions(prev => [...prev, reaction]);
+    setShowEmojiPicker(false);
+  };
+
+  // Håndter indkommende emoji-reaktioner
+  const handleEmojiReaction = (reaction: EmojiReaction) => {
+    setEmojiReactions(prev => [...prev, reaction]);
+    
+    // Fjern reaktionen efter animationen er færdig (3 sekunder)
+    setTimeout(() => {
+      setEmojiReactions(prev => 
+        prev.filter(r => r.timestamp !== reaction.timestamp)
+      );
+    }, 3000);
+  };
+
+  // Render emoji-reaktioner
+  const renderEmojiReactions = () => {
+    if (!room) return null;
+
+    return emojiReactions.map((reaction, index) => {
+      const fromUser = room.participants.find(p => p.id === reaction.fromUserId);
+      const toUser = room.participants.find(p => p.id === reaction.toUserId);
+      
+      if (!fromUser || !toUser) return null;
+      
+      const fromIndex = room.participants.findIndex(p => p.id === reaction.fromUserId);
+      const toIndex = room.participants.findIndex(p => p.id === reaction.toUserId);
+      
+      if (fromIndex === -1 || toIndex === -1) return null;
+      
+      const centerX = 400;
+      const centerY = 300;
+      const radius = 200;
+      
+      const fromAngle = -90 + (fromIndex * 360) / room.participants.length;
+      const toAngle = -90 + (toIndex * 360) / room.participants.length;
+      
+      const fromX = Math.cos(fromAngle * (Math.PI / 180)) * radius + centerX;
+      const fromY = Math.sin(fromAngle * (Math.PI / 180)) * radius + centerY;
+      const toX = Math.cos(toAngle * (Math.PI / 180)) * radius + centerX;
+      const toY = Math.sin(toAngle * (Math.PI / 180)) * radius + centerY;
+      
+      // Beregn kontrolpunkt for bue-animation med mere naturlig bue
+      const midAngle = (fromAngle + toAngle) / 2;
+      const controlDistance = radius * 0.5;
+      const controlX = centerX + Math.cos(midAngle * (Math.PI / 180)) * controlDistance;
+      const controlY = centerY + Math.sin(midAngle * (Math.PI / 180)) * controlDistance;
+      
+      return (
+        <motion.div
+          key={`${reaction.timestamp}-${index}`}
+          className="absolute text-3xl pointer-events-none z-50"
+          initial={{ 
+            scale: 0.5, 
+            x: fromX, 
+            y: fromY,
+            opacity: 0 
+          }}
+          animate={{
+            scale: [0.5, 1.5, 1],
+            x: [fromX, controlX, toX],
+            y: [fromY, controlY, toY],
+            opacity: [0, 1, 1, 0],
+          }}
+          transition={{
+            duration: 1.5,
+            times: [0, 0.5, 1],
+            ease: "easeInOut"
+          }}
+        >
+          {reaction.emoji}
+        </motion.div>
+      );
+    });
+  };
+
   if (error) {
     return <div className="text-red-600 p-4">{error}</div>;
   }
@@ -679,104 +810,146 @@ const GameRoom: React.FC = () => {
 
           <div className="w-full mt-5">
               <div className="bg-white rounded-lg p-8 shadow">
-                <div className="relative flex justify-center items-center min-h-[500px]">
-                  {/* Cirkel container med forbedret størrelse */}
-                  <div className="relative w-[500px] h-[500px]">
-                    {/* Deltagere i cirkel */}
-                    {room?.participants.map((participant, index) => {
-                      // Beregn vinklen med offset for at starte fra toppen
-                      const angleOffset = -90; // Start fra toppen (12 o'clock position)
-                      const angleStep = 360 / room.participants.length;
-                      const angle = angleOffset + (index * angleStep);
-                      const radius = 200; // Større radius for bedre spacing
-                      
-                      // Beregn position med trigonometri
-                      const x = Math.cos(angle * (Math.PI / 180)) * radius + 250;
-                      const y = Math.sin(angle * (Math.PI / 180)) * radius + 250;
-                      
-                      return (
-                        <div
-                          key={participant.id}
-                          className="absolute transform -translate-x-1/2 -translate-y-1/2 transition-all duration-300 ease-in-out"
-                          style={{
-                            left: `${x}px`,
-                            top: `${y}px`,
-                          }}
-                        >
-                          <div className="flex flex-col items-center space-y-2">
-                            <div className="relative">
-                              {participant.profile_image ? (
-                                <img 
-                                  src={`http://localhost:8080${participant.profile_image}`} 
-                                  alt={participant.username} 
-                                  className="w-16 h-16 rounded-full object-cover border-4 border-purple-500 shadow-lg hover:scale-110 transition-transform duration-200"
-                                />
-                              ) : (
-                                <div className="w-16 h-16 rounded-full bg-purple-200 flex items-center justify-center border-4 border-purple-500 shadow-lg hover:scale-110 transition-transform duration-200">
-                                  <span className="text-xl font-bold text-purple-600">
-                                    {participant.username.charAt(0).toUpperCase()}
-                                  </span>
-                                </div>
-                              )}
-                              {participant.id === room.admin_id && (
-                                <span className="absolute -top-1 -right-1 bg-purple-500 text-white text-xs px-2 py-0.5 rounded-full shadow-md">
-                                  Admin
-                                </span>
-                              )}
-                              {/* Online status indikator */}
-                              <div className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-white ${isConnected ? 'bg-green-500' : 'bg-gray-400'}`} />
-                              
-                              {/* Vis stemme hvis afstemning er i gang eller afsluttet */}
-                              {room.current_story && (isVotingOpen || showResults) && (
-                                <div className="absolute -right-12 top-1/2 transform -translate-y-1/2">
-                                  <div className={`
-                                    w-10 h-10 rounded-full 
-                                    ${room.current_story.votes.some(v => v.user_id === participant.id) 
-                                      ? 'bg-purple-500 text-white' 
-                                      : 'bg-gray-200 text-gray-400'} 
-                                    flex items-center justify-center font-bold shadow-md
-                                    ${!showResults && room.current_story.votes.some(v => v.user_id === participant.id) ? 'bg-green-500' : ''}
-                                  `}>
-                                    {showResults 
-                                      ? room.current_story.votes.find(v => v.user_id === participant.id)?.value || '-'
-                                      : room.current_story.votes.some(v => v.user_id === participant.id) ? '✓' : '?'
-                                    }
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                            <div className="bg-white px-3 py-1.5 rounded-full shadow-md">
-                              <span className="text-sm font-medium text-gray-700 whitespace-nowrap">
-                                {participant.username}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
+                <div className="relative w-[800px] h-[600px] mx-auto">
+                  {/* Render emoji reactions */}
+                  {renderEmojiReactions()}
+                  
+                  {/* Deltagere i cirkel */}
+                  {room?.participants.map((participant, index) => {
+                    const angleOffset = -90;
+                    const angleStep = 360 / room.participants.length;
+                    const angle = angleOffset + (index * angleStep);
+                    const radius = 200;
+                    const centerX = 400;
+                    const centerY = 300;
+                    const x = Math.cos(angle * (Math.PI / 180)) * radius + centerX;
+                    const y = Math.sin(angle * (Math.PI / 180)) * radius + centerY;
                     
-                    {/* Centrum indhold med forbedret design */}
-                    <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-                      <div className="bg-white rounded-2xl shadow-xl p-6 w-56 text-center border-2 border-purple-100">
-                        <h3 className="font-bold text-xl text-purple-600 mb-3">{room.name}</h3>
-                        <div className="space-y-2">
-                          <div className="flex items-center justify-between px-2 py-1 bg-purple-50 rounded-lg">
-                            <span className="text-sm text-purple-600">Deltagere</span>
-                            <span className="font-bold text-purple-700">{room.participants.length}</span>
+                    return (
+                      <div
+                        key={participant.id}
+                        className="absolute transform -translate-x-1/2 -translate-y-1/2"
+                        style={{
+                          left: `${x}px`,
+                          top: `${y}px`,
+                        }}
+                      >
+                        <div className="flex flex-col items-center space-y-2">
+                          <div 
+                            className="relative cursor-pointer"
+                            onClick={() => handleProfileClick(participant.id)}
+                            ref={participant.id === selectedUserId ? refs.setReference : null}
+                          >
+                            {participant.profile_image ? (
+                              <img 
+                                src={`http://localhost:8080${participant.profile_image}`} 
+                                alt={participant.username} 
+                                className="w-16 h-16 rounded-full object-cover border-4 border-purple-500 shadow-lg hover:scale-110 transition-transform duration-200"
+                              />
+                            ) : (
+                              <div className="w-16 h-16 rounded-full bg-purple-200 flex items-center justify-center border-4 border-purple-500 shadow-lg hover:scale-110 transition-transform duration-200">
+                                <span className="text-xl font-bold text-purple-600">
+                                  {participant.username.charAt(0).toUpperCase()}
+                                </span>
+                              </div>
+                            )}
+                            {participant.id === room.admin_id && (
+                              <span className="absolute -top-1 -right-1 bg-purple-500 text-white text-xs px-2 py-0.5 rounded-full shadow-md">
+                                Admin
+                              </span>
+                            )}
+                            {/* Online status indikator */}
+                            <div className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-white ${isConnected ? 'bg-green-500' : 'bg-gray-400'}`} />
+                            
+                            {/* Vis stemme hvis afstemning er i gang eller afsluttet */}
+                            {room.current_story && (isVotingOpen || showResults) && (
+                              <div className="absolute -right-12 top-1/2 transform -translate-y-1/2">
+                                <div className={`
+                                  w-10 h-10 rounded-full 
+                                  ${room.current_story.votes.some(v => v.user_id === participant.id) 
+                                    ? 'bg-purple-500 text-white' 
+                                    : 'bg-gray-200 text-gray-400'} 
+                                  flex items-center justify-center font-bold shadow-md
+                                  ${!showResults && room.current_story.votes.some(v => v.user_id === participant.id) ? 'bg-green-500' : ''}
+                                `}>
+                                  {showResults 
+                                    ? room.current_story.votes.find(v => v.user_id === participant.id)?.value || '-'
+                                    : room.current_story.votes.some(v => v.user_id === participant.id) ? '✓' : '?'
+                                  }
+                                </div>
+                              </div>
+                            )}
                           </div>
-                          <div className="flex items-center justify-between px-2 py-1 bg-purple-50 rounded-lg">
-                            <span className="text-sm text-purple-600">Historier</span>
-                            <span className="font-bold text-purple-700">{completedStories.length}</span>
-                          </div>
-                          <div className="flex items-center justify-between px-2 py-1 bg-purple-50 rounded-lg">
-                            <span className="text-sm text-purple-600">Gennemsnit</span>
-                            <span className="font-bold text-purple-700">
-                              {completedStories.length > 0 
-                                ? (completedStories.reduce((acc, story) => acc + story.final_score, 0) / completedStories.length).toFixed(1)
-                                : '-'
-                              }
+                          <div className="bg-white px-3 py-1.5 rounded-full shadow-md">
+                            <span className="text-sm font-medium text-gray-700 whitespace-nowrap">
+                              {participant.username}
                             </span>
                           </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                  
+                  {/* Emoji Picker Popup */}
+                  <AnimatePresence>
+                    {showEmojiPicker && selectedUserId && (
+                      <motion.div
+                        ref={refs.setFloating}
+                        className="absolute z-50"
+                        style={{
+                          position: strategy,
+                          top: y ?? 0,
+                          left: x ?? 0,
+                        }}
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.8 }}
+                        transition={{ duration: 0.2 }}
+                      >
+                        <div 
+                          ref={arrowRef}
+                          className="absolute w-4 h-4 bg-white transform rotate-45"
+                          style={{
+                            top: middlewareData.arrow?.y,
+                            left: middlewareData.arrow?.x,
+                          }}
+                        />
+                        <div className="relative bg-white rounded-lg shadow-xl p-2">
+                          <EmojiPicker
+                            onEmojiClick={(emojiData) => {
+                              if (selectedUserId) {
+                                sendEmojiReaction(emojiData.emoji, selectedUserId);
+                              }
+                            }}
+                            width={300}
+                            height={400}
+                          />
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                  
+                  {/* Centrum indhold med forbedret design */}
+                  <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+                    <div className="bg-white rounded-2xl shadow-xl p-6 w-64 text-center border-2 border-purple-100">
+                      <h3 className="font-bold text-xl text-purple-600 mb-3">{room.name}</h3>
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between px-2 py-1 bg-purple-50 rounded-lg">
+                          <span className="text-sm text-purple-600">Deltagere</span>
+                          <span className="font-bold text-purple-700">{room.participants.length}</span>
+                        </div>
+                        <div className="flex items-center justify-between px-2 py-1 bg-purple-50 rounded-lg">
+                          <span className="text-sm text-purple-600">Historier</span>
+                          <span className="font-bold text-purple-700">{completedStories.length}</span>
+                        </div>
+                        <div className="flex items-center justify-between px-2 py-1 bg-purple-50 rounded-lg">
+                          <span className="text-sm text-purple-600">Gennemsnit</span>
+                          <span className="font-bold text-purple-700">
+                            {completedStories.length > 0 
+                              ? (completedStories.reduce((acc, story) => acc + story.final_score, 0) / completedStories.length).toFixed(1)
+                              : '-'
+                            }
+                          </span>
                         </div>
                       </div>
                     </div>
