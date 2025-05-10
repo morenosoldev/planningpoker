@@ -16,8 +16,8 @@ RUN cargo build --release
 # Expose port 8090 to the outside world
 EXPOSE 8090
 
-# ✅ Copy the built binary to a predictable path
-RUN cp target/release/voting-api /usr/local/bin/
+# ✅ Copy the actual binary name to a predictable path
+RUN cp target/release/backend /usr/local/bin/voting-api
 
 # Set the entrypoint command to run the compiled binary
 CMD ["voting-api"]
