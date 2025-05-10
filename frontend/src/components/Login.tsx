@@ -1,25 +1,27 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../contexts/AuthContext";
 
 const Login: React.FC = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const { loginWithCredentials } = useAuth();
+  const { login } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
+    setError("");
     setIsLoading(true);
 
     try {
-      await loginWithCredentials(email, password);
-      navigate('/dashboard');
+      await login(email, password);
+      navigate("/dashboard");
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Der skete en fejl ved login');
+      setError(
+        err instanceof Error ? err.message : "Der skete en fejl ved login"
+      );
     } finally {
       setIsLoading(false);
     }
@@ -28,16 +30,17 @@ const Login: React.FC = () => {
   return (
     <div className="max-w-md mx-auto mt-8 p-6 bg-white rounded-lg shadow-md">
       <h2 className="text-2xl font-bold mb-6">Log ind</h2>
-      
+
       {error && (
-        <div className="mb-4 p-3 bg-red-100 text-red-700 rounded">
-          {error}
-        </div>
+        <div className="mb-4 p-3 bg-red-100 text-red-700 rounded">{error}</div>
       )}
 
       <form onSubmit={handleSubmit}>
         <div className="mb-4">
-          <label htmlFor="email" className="block text-gray-700 font-medium mb-2">
+          <label
+            htmlFor="email"
+            className="block text-gray-700 font-medium mb-2"
+          >
             Email
           </label>
           <input
@@ -52,7 +55,10 @@ const Login: React.FC = () => {
         </div>
 
         <div className="mb-6">
-          <label htmlFor="password" className="block text-gray-700 font-medium mb-2">
+          <label
+            htmlFor="password"
+            className="block text-gray-700 font-medium mb-2"
+          >
             Adgangskode
           </label>
           <input
@@ -69,15 +75,15 @@ const Login: React.FC = () => {
         <button
           type="submit"
           className={`w-full py-2 px-4 bg-blue-500 text-white rounded hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 ${
-            isLoading ? 'opacity-50 cursor-not-allowed' : ''
+            isLoading ? "opacity-50 cursor-not-allowed" : ""
           }`}
           disabled={isLoading}
         >
-          {isLoading ? 'Logger ind...' : 'Log ind'}
+          {isLoading ? "Logger ind..." : "Log ind"}
         </button>
       </form>
     </div>
   );
 };
 
-export default Login; 
+export default Login;

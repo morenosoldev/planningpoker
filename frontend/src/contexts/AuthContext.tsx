@@ -22,7 +22,7 @@ interface AuthContextType {
   user: User | null;
   token: string | null;
   userId: string | null;
-  loginWithCredentials: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<void>;
   register: (
     email: string,
     password: string,
@@ -64,7 +64,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     }
   }, []);
 
-  const loginWithCredentials = async (email: string, password: string) => {
+  const login = async (email: string, password: string) => {
     try {
       const response = await axios.post("/auth/login", {
         email,
@@ -140,7 +140,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     user,
     token,
     userId: user?.id || null,
-    loginWithCredentials,
+    login,
     register,
     setAuthToken,
     logout,
