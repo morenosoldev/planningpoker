@@ -60,5 +60,6 @@ jobs:
             docker run --privileged -d --name planning-server \
                 --restart always \
                 -e "MONGODB_URI=${{ secrets.MONGODB_URI }}" \
+                -e "JWT_SECRET=${{ secrets.JWT_SECRET }}" \
                 -p 8090:8090 \
                 ${{ secrets.DOCKER_USERNAME }}/planning-server:latest
