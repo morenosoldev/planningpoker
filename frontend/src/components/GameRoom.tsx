@@ -91,11 +91,16 @@ const GameRoom: React.FC = () => {
   const fetchRoom = useCallback(async () => {
     try {
       console.log("Henter opdateret rumdata...");
-      const response = await fetch(`http://localhost:8080/rooms/${roomId}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const response = await fetch(
+        `${
+          import.meta.env.VITE_API_BASE_URL || "http://localhost:8080"
+        }/rooms/${roomId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
 
       if (!response.ok) {
         throw new Error("Kunne ikke hente opdateret rumdata");
@@ -592,7 +597,9 @@ const GameRoom: React.FC = () => {
   const fetchCompletedStories = useCallback(async () => {
     try {
       const response = await fetch(
-        `http://localhost:8080/rooms/${roomId}/completed-stories`,
+        `${
+          import.meta.env.VITE_API_BASE_URL || "http://localhost:8080"
+        }/rooms/${roomId}/completed-stories`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -766,7 +773,9 @@ const GameRoom: React.FC = () => {
               {room?.participants.find((p) => p.id === userId)
                 ?.profile_image ? (
                 <img
-                  src={`http://localhost:8080${
+                  src={`${
+                    import.meta.env.VITE_API_BASE_URL || "http://localhost:8080"
+                  }${
                     room.participants.find((p) => p.id === userId)
                       ?.profile_image
                   }`}
@@ -946,7 +955,10 @@ const GameRoom: React.FC = () => {
                         >
                           {participant.profile_image ? (
                             <img
-                              src={`http://localhost:8080${participant.profile_image}`}
+                              src={`${
+                                import.meta.env.VITE_API_BASE_URL ||
+                                "http://localhost:8080"
+                              }${participant.profile_image}`}
                               alt={participant.username}
                               className="w-16 h-16 rounded-full object-cover border-4 border-purple-500 shadow-lg hover:scale-110 transition-transform duration-200"
                             />

@@ -8,7 +8,8 @@ import React, {
 import axios from "axios";
 
 // Konfigurer axios defaults
-axios.defaults.baseURL = "http://localhost:8080";
+axios.defaults.baseURL =
+  import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
 axios.defaults.headers.common["Content-Type"] = "application/json";
 axios.defaults.headers.common["Accept"] = "application/json";
 

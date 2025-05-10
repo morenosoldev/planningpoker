@@ -1,37 +1,40 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../contexts/AuthContext";
 
 const CreateRoom: React.FC = () => {
-  const [name, setName] = useState('');
-  const [error, setError] = useState('');
+  const [name, setName] = useState("");
+  const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const { token } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
+    setError("");
     setIsLoading(true);
 
     try {
-      const response = await fetch('http://localhost:8080/rooms', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({ name }),
-      });
+      const response = await fetch(
+        `${import.meta.env.VITE_API_BASE_URL || "http://localhost:8080"}/rooms`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ name }),
+        }
+      );
 
       if (!response.ok) {
-        throw new Error('Kunne ikke oprette rum');
+        throw new Error("Kunne ikke oprette rum");
       }
 
       const data = await response.json();
       navigate(`/rooms/${data.id}`);
     } catch (err) {
-      setError('Der skete en fejl ved oprettelse af rummet');
+      setError("Der skete en fejl ved oprettelse af rummet");
       console.error(err);
     } finally {
       setIsLoading(false);
@@ -41,16 +44,17 @@ const CreateRoom: React.FC = () => {
   return (
     <div className="max-w-md mx-auto mt-8 p-6 bg-white rounded-lg shadow-md">
       <h2 className="text-2xl font-bold mb-6">Opret nyt rum</h2>
-      
+
       {error && (
-        <div className="mb-4 p-3 bg-red-100 text-red-700 rounded">
-          {error}
-        </div>
+        <div className="mb-4 p-3 bg-red-100 text-red-700 rounded">{error}</div>
       )}
 
       <form onSubmit={handleSubmit}>
         <div className="mb-4">
-          <label htmlFor="name" className="block text-gray-700 font-medium mb-2">
+          <label
+            htmlFor="name"
+            className="block text-gray-700 font-medium mb-2"
+          >
             Rummets navn
           </label>
           <input
@@ -67,15 +71,15 @@ const CreateRoom: React.FC = () => {
         <button
           type="submit"
           className={`w-full py-2 px-4 bg-blue-500 text-white rounded hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 ${
-            isLoading ? 'opacity-50 cursor-not-allowed' : ''
+            isLoading ? "opacity-50 cursor-not-allowed" : ""
           }`}
           disabled={isLoading}
         >
-          {isLoading ? 'Opretter...' : 'Opret rum'}
+          {isLoading ? "Opretter..." : "Opret rum"}
         </button>
       </form>
     </div>
   );
 };
 
-export default CreateRoom; 
+export default CreateRoom;
