@@ -13,8 +13,11 @@ COPY src ./src
 # Build the Rust application
 RUN cargo build --release
 
-# Expose port 8080 to the outside world
+# Expose port 8090 to the outside world
 EXPOSE 8090
 
+# ✅ Copy the built binary to a predictable path
+RUN cp target/release/voting-api /usr/local/bin/
+
 # Set the entrypoint command to run the compiled binary
-CMD ["./target/release/voting-api"]
+CMD ["voting-api"]
