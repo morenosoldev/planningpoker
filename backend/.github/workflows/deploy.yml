@@ -1,25 +1,63 @@
-name: Deploy Backend
+name: CI/CD Pipeline
 
 on:
   push:
     branches:
-      - main
-    paths:
-      - 'backend/**'
+      - master
 
 jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          profile: minimal
+
+      - name: Log in to Docker Hub
+        run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+
+      - name: Build Docker image
+        run: docker build -t ${{ secrets.DOCKER_USERNAME }}/planning-server:latest .
+
+      - name: Push Docker image to Docker Hub
+        run: docker push ${{ secrets.DOCKER_USERNAME }}/planning-server:latest
+
   deploy:
     runs-on: ubuntu-latest
-    
+    needs: build
+
     steps:
-      - uses: actions/checkout@v3
-      
-      - name: Install Railway CLI
-        run: npm install -g @railway/cli
-        
-      - name: Deploy to Railway
+      - name: Install SSH key
         run: |
-          cd backend
-          railway up
-        env:
-          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }} 
+          mkdir -p ~/.ssh
+          echo "${{ secrets.PAID_VPS_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+
+      - name: Test SSH Connection
+        run: |
+          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ${{ secrets.PAID_VPS_USER }}@${{ secrets.PAID_VPS_HOST }} echo "SSH connection successful"
+
+      - name: SSH into VPS and update Docker container
+        uses: appleboy/ssh-action@v0.1.3
+        with:
+          host: ${{ secrets.PAID_VPS_HOST }}
+          username: ${{ secrets.PAID_VPS_USER }}
+          key: ${{ secrets.PAID_VPS_KEY }}
+          script: |
+            docker login -u "${{ secrets.DOCKER_USERNAME }}" -p "${{ secrets.DOCKER_PASSWORD }}"
+            docker pull ${{ secrets.DOCKER_USERNAME }}/planning-server:latest
+            if [ "$(docker ps -a -q -f name=planning-server)" ]; then
+              docker stop planning-server
+              docker rm planning-server
+            fi
+            docker run --privileged -d --name planning-server \
+                --restart always \
+                -e "MONGODB_URI=${{ secrets.MONGODB_URI }}" \
+                -p 8080:8080 \
+                ${{ secrets.DOCKER_USERNAME }}/planning-server:latest
