@@ -73,10 +73,8 @@ const GameRoom: React.FC = () => {
   const [newStoryDescription, setNewStoryDescription] = useState("");
   const [isVotingOpen, setIsVotingOpen] = useState(false);
   const [showResults, setShowResults] = useState(false);
-  const [finalScore, setFinalScore] = useState<number | "">("");
   const [editableScore, setEditableScore] = useState<number | "">("");
   const wsRef = useRef<WebSocket | null>(null);
-  const reconnectTimeoutRef = useRef<number | undefined>(undefined);
   const [completedStories, setCompletedStories] = useState<CompletedStory[]>(
     []
   );
@@ -552,20 +550,6 @@ const GameRoom: React.FC = () => {
         },
       };
     });
-  };
-
-  // Hjælpefunktion til at tjekke om en bruger har stemt
-  const hasUserVoted = (userId: string) => {
-    return (
-      room?.current_story?.votes.some((vote) => vote.user_id === userId) ??
-      false
-    );
-  };
-
-  // Hjælpefunktion til at få en brugers stemme
-  const getUserVote = (userId: string) => {
-    return room?.current_story?.votes.find((vote) => vote.user_id === userId)
-      ?.value;
   };
 
   const isAdmin = userId === room?.admin_id;
