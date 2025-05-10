@@ -60,5 +60,5 @@ jobs:
             docker run --privileged -d --name planning-server \
                 --restart always \
                 -e "MONGODB_URI=${{ secrets.MONGODB_URI }}" \
-                -p 8180:8080 \
+                -p 8090:8090 \
                 ${{ secrets.DOCKER_USERNAME }}/planning-server:latest

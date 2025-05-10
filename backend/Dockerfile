@@ -1,29 +1,20 @@
-# Use Rust 1.77 for lock file v4 compatibility
-FROM rust:1.77 AS builder
+# Use the official Rust image as the base
+FROM rust:latest
 
-WORKDIR /usr/src/app
+# Set the working directory
+WORKDIR /usr/src/myapp
 
-# Only copy files from the build context (which is `backend/`)
+# Copy the Cargo.toml and Cargo.lock files
 COPY Cargo.toml Cargo.lock ./
+
+# Copy the source code
 COPY src ./src
 
+# Build the Rust application
 RUN cargo build --release
 
-# Use a slim Debian image for final output
-FROM debian:bookworm-slim
+# Expose port 8080 to the outside world
+EXPOSE 8090
 
-WORKDIR /usr/local/bin
-
-# Copy the built binary (adjust name if needed)
-COPY --from=builder /usr/src/app/target/release/backend ./voting-gubra
-
-
-# Install runtime dependencies
-RUN apt-get update && apt-get install -y \
-    libssl-dev \
-    ca-certificates && \
-    rm -rf /var/lib/apt/lists/*
-
-EXPOSE 8080
-
-CMD ["./voting-gubra"]
+# Set the entrypoint command to run the compiled binary
+CMD ["./target/release/voting-api"]
