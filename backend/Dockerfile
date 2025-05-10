@@ -13,6 +13,8 @@ COPY src ./src
 # Build the Rust application
 RUN cargo build --release
 
+RUN mkdir -p /myapp/uploads
+
 # Expose port 8090 to the outside world
 EXPOSE 8090
 

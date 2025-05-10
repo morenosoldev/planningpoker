@@ -61,5 +61,5 @@ jobs:
                 --restart always \
                 -e "MONGODB_URI=${{ secrets.MONGODB_URI }}" \
                 -e "JWT_SECRET=${{ secrets.JWT_SECRET }}" \
-                -p 8090:8090 \
+                -p 8090:8080 \
                 ${{ secrets.DOCKER_USERNAME }}/planning-server:latest
