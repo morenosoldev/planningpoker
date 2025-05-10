@@ -17,9 +17,6 @@ WORKDIR /usr/local/bin
 # Copy the built binary from the builder stage
 COPY --from=builder /usr/src/app/target/release/backend ./voting-gubra
 
-# Optional: copy env file if needed
-COPY backend/.env .
-
 # Install runtime dependencies
 RUN apt-get update && apt-get install -y \
     libssl-dev \
