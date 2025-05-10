@@ -1,7 +1,7 @@
-FROM rust:1.75 as builder
+FROM rust:1.77 as builder
 
 WORKDIR /usr/src/app
-COPY . .
+COPY backend/ ./ 
 
 RUN cargo build --release
 
