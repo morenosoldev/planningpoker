@@ -1,10 +1,16 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
-import axios from 'axios';
+import React, {
+  createContext,
+  useContext,
+  useState,
+  ReactNode,
+  useEffect,
+} from "react";
+import axios from "axios";
 
 // Konfigurer axios defaults
-axios.defaults.baseURL = 'http://localhost:8080';
-axios.defaults.headers.common['Content-Type'] = 'application/json';
-axios.defaults.headers.common['Accept'] = 'application/json';
+axios.defaults.baseURL = "http://localhost:8080";
+axios.defaults.headers.common["Content-Type"] = "application/json";
+axios.defaults.headers.common["Accept"] = "application/json";
 
 interface User {
   id: string;
@@ -17,86 +23,118 @@ interface AuthContextType {
   token: string | null;
   userId: string | null;
   loginWithCredentials: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string, username: string) => Promise<void>;
-  setAuthToken: (token: string) => void;
+  register: (
+    email: string,
+    password: string,
+    username: string
+  ) => Promise<void>;
+  setAuthToken: (token: string, user: User) => void;
   logout: () => void;
   isAuthenticated: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+export const AuthProvider: React.FC<{ children: ReactNode }> = ({
+  children,
+}) => {
   const [user, setUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(localStorage.getItem('token'));
+  const [token, setToken] = useState<string | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  // Hydrate from localStorage
+  useEffect(() => {
+    const session = localStorage.getItem("auth_session");
+    if (!session) return;
+
+    try {
+      const parsed = JSON.parse(session);
+      const isExpired = parsed?.expiry && parsed.expiry < Date.now();
+
+      if (!isExpired && parsed?.token && parsed?.user) {
+        setToken(parsed.token);
+        setUser(parsed.user);
+        setIsAuthenticated(true);
+      } else {
+        // If expired or invalid, clear it
+        localStorage.removeItem("auth_session");
+      }
+    } catch (e) {
+      console.error("Fejl ved parsing af session:", e);
+    }
+  }, []);
 
   const loginWithCredentials = async (email: string, password: string) => {
     try {
-      const response = await axios.post('/auth/login', {
+      const response = await axios.post("/auth/login", {
         email,
         password,
       });
 
       const { token, user } = response.data;
-      localStorage.setItem('token', token);
-      setUser(user);
-      setToken(token);
-      
+      setAuthToken(token, user);
+      setIsAuthenticated(true);
+
       // Sæt isAuthenticated til true når vi har en bruger
       setIsAuthenticated(true);
     } catch (error) {
       if (axios.isAxiosError(error) && error.response) {
-        throw new Error(error.response.data.message || 'Login fejlede');
+        throw new Error(error.response.data.message || "Login fejlede");
       }
-      throw new Error('Der opstod en fejl under login');
+      throw new Error("Der opstod en fejl under login");
     }
   };
 
-  const register = async (email: string, password: string, username: string) => {
+  const register = async (
+    email: string,
+    password: string,
+    username: string
+  ) => {
     try {
-      const response = await axios.post('/auth/register', {
+      const response = await axios.post("/auth/register", {
         email,
         password,
         username,
       });
 
       const { token, user } = response.data;
-      localStorage.setItem('token', token);
-      setUser(user);
-      setToken(token);
-      
+      setAuthToken(token, user);
+      setIsAuthenticated(true);
+
       // Sæt isAuthenticated til true når vi har en bruger
       setIsAuthenticated(true);
     } catch (error) {
       if (axios.isAxiosError(error) && error.response) {
-        throw new Error(error.response.data.message || 'Registrering fejlede');
+        throw new Error(error.response.data.message || "Registrering fejlede");
       }
-      throw new Error('Der opstod en fejl under registrering');
+      throw new Error("Der opstod en fejl under registrering");
     }
   };
 
   // Opdater axios authorization header når token ændres
   React.useEffect(() => {
     if (token) {
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
     } else {
-      delete axios.defaults.headers.common['Authorization'];
+      delete axios.defaults.headers.common["Authorization"];
     }
   }, [token]);
 
-  const setAuthToken = (newToken: string) => {
-    localStorage.setItem('token', newToken);
+  const setAuthToken = (newToken: string, user: User) => {
+    const expiry = new Date().getTime() + 24 * 60 * 60 * 1000; // 24 hours
+    const session = JSON.stringify({ token: newToken, user, expiry });
+    localStorage.setItem("auth_session", session);
     setToken(newToken);
+    setUser(user);
+    setIsAuthenticated(true);
   };
 
   const logout = () => {
-    localStorage.removeItem('token');
+    localStorage.removeItem("auth_session");
     setUser(null);
     setToken(null);
     setIsAuthenticated(false);
   };
-
-  // Tilføj isAuthenticated state
-  const [isAuthenticated, setIsAuthenticated] = useState(!!user);
 
   const value = {
     user,
@@ -115,7 +153,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error('useAuth skal bruges inden i en AuthProvider');
+    throw new Error("useAuth skal bruges inden i en AuthProvider");
   }
   return context;
-}; 
+};
