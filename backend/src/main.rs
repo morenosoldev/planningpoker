@@ -36,9 +36,17 @@ async fn main() -> std::io::Result<()> {
         App::new()
             .wrap(
                 Cors::default()
-                    .allow_any_origin()
-                    .allow_any_method()
-                    .allow_any_header()
+                    .allowed_origin_fn(|origin, _req_head| {
+                        origin.as_bytes().starts_with(b"https://estimer.dk")
+                    })
+                    .allowed_methods(vec!["GET", "POST", "OPTIONS"])
+                    .allowed_headers(
+                        vec![
+                            actix_web::http::header::AUTHORIZATION,
+                            actix_web::http::header::CONTENT_TYPE
+                        ]
+                    )
+                    .supports_credentials()
                     .max_age(3600)
             )
             .app_data(web::Data::new(db.clone()))
