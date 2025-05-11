@@ -37,7 +37,7 @@ async fn main() -> std::io::Result<()> {
             .wrap(
                 Cors::default()
                     .allowed_origin_fn(|origin, _req_head| {
-                        origin.as_bytes().starts_with(b"https://estimer.dk")
+                        origin == "https://estimer.dk" || origin == "https://www.estimer.dk"
                     })
                     .allowed_methods(vec!["GET", "POST", "OPTIONS"])
                     .allowed_headers(
