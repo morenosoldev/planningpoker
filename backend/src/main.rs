@@ -32,8 +32,6 @@ async fn main() -> std::io::Result<()> {
     let game_server_addr = game_server.clone().start();
     *GAME_SERVER.lock().unwrap() = Some(game_server_addr.clone());
 
-    println!("Server starter på http://127.0.0.1:8080");
-
     HttpServer::new(move || {
         App::new()
             .wrap(
