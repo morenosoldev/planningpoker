@@ -36,10 +36,9 @@ async fn main() -> std::io::Result<()> {
         App::new()
             .wrap(
                 Cors::default()
-                    .allowed_origin_fn(|origin, _req_head| {
-                        origin == "https://estimer.dk" || origin == "https://www.estimer.dk"
-                    })
-                    .allowed_methods(vec!["GET", "POST", "OPTIONS"])
+                    .allowed_origin("https://www.estimer.dk")
+                    .allowed_origin("https://estimer.dk")
+                    .allowed_methods(vec!["GET", "POST", "PUT", "OPTIONS"])
                     .allowed_headers(
                         vec![
                             actix_web::http::header::AUTHORIZATION,
