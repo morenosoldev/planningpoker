@@ -1,0 +1,128 @@
+{
+  "landing": {
+    "title": "Estimer",
+    "signIn": "Sign In",
+    "hero": {
+      "title": "Estimation Made",
+      "titleHighlight": "Easy",
+      "subtitle": "Boosting Productivity through Effective Planning. Simplify your estimation process, collaborate effectively with your team, and make better project decisions.",
+      "startPlanning": "Start Planning Now",
+      "noSignup": "No signup required",
+      "startFree": "Start for free"
+    },
+    "features": {
+      "title": "Everything you need for effective planning",
+      "subtitle": "Simple, powerful tools to make your estimation process smooth and collaborative",
+      "quickSimple": {
+        "title": "Quick & Simple",
+        "description": "Get started in seconds. No complex setup, no lengthy tutorials. Create a room and start estimating immediately."
+      },
+      "teamCollaboration": {
+        "title": "Team Collaboration",
+        "description": "Invite your entire team with a simple link. Everyone can join instantly and participate from anywhere."
+      },
+      "realTimeResults": {
+        "title": "Real-time Results",
+        "description": "See votes revealed simultaneously. Track progress and make decisions together with instant feedback."
+      },
+      "secureSessions": {
+        "title": "Secure Sessions",
+        "description": "Your planning sessions are private and secure. Only invited team members can join and participate."
+      },
+      "storyManagement": {
+        "title": "Story Management",
+        "description": "Easily create, manage and track your user stories. Keep your planning organized and efficient."
+      },
+      "progressTracking": {
+        "title": "Progress Tracking",
+        "description": "Monitor your team's estimation progress. See completed stories and track your planning velocity."
+      }
+    },
+    "howItWorks": {
+      "title": "Get Started In 3 Easy Steps",
+      "subtitle": "Start planning in minutes, not hours",
+      "step1": {
+        "title": "Create A Room",
+        "description": "Create a planning poker room for your team with custom settings and personalized configurations."
+      },
+      "step2": {
+        "title": "Invite Your Team",
+        "description": "Share a simple link with your team members. They can join instantly without any signup required."
+      },
+      "step3": {
+        "title": "Start Voting",
+        "description": "Create user stories and start estimating! See results in real-time and make informed decisions together."
+      }
+    },
+    "cta": {
+      "title": "Ready to start planning?",
+      "subtitle": "Join thousands of teams who trust our platform for their agile planning sessions. Start estimating more effectively today.",
+      "startPlanning": "Start Planning Now"
+    },
+    "footer": {
+      "title": "Planning Poker",
+      "subtitle": "Simplify your estimation process and boost your team's productivity with our intuitive planning poker platform.",
+      "copyright": "© 2025 Planning Poker. Made with ❤️ for agile teams everywhere."
+    }
+  },
+  "createRoom": {
+    "title": "Create New Room",
+    "roomName": "Room Name",
+    "placeholder": "Enter a name for your planning room",
+    "cancel": "Cancel",
+    "create": "Create Room",
+    "creating": "Creating...",
+    "subtitle": "Your team will be able to join using a shareable link once the room is created.",
+    "error": "An error occurred while creating the room"
+  },
+  "auth": {
+    "loginTitle": "Sign in to your account",
+    "registerTitle": "Create new account",
+    "username": "Username",
+    "email": "Email",
+    "password": "Password",
+    "login": "Sign In",
+    "register": "Create Account",
+    "switchToRegister": "Don't have an account? Create one here",
+    "switchToLogin": "Already have an account? Sign in here",
+    "usernameRequired": "Username is required",
+    "error": "An error occurred",
+    "usernamePlaceholder": "Your username",
+    "emailPlaceholder": "Your email",
+    "passwordPlaceholder": "Your password"
+  },
+  "gameRoom": {
+    "inviteOthers": "Invite others",
+    "inviteTitle": "Invite others to join",
+    "inviteSubtitle": "Share this link with others to invite them to this Planning Poker session:",
+    "copy": "Copy",
+    "copied": "Copied!",
+    "close": "Close",
+    "waiting": "Waiting",
+    "voted": "Voted",
+    "currentStory": "Current Story",
+    "completedStories": "Completed Stories",
+    "newStory": "New Story",
+    "storyTitle": "Story Title",
+    "storyDescription": "Story Description (optional)",
+    "createStory": "Create Story",
+    "startVoting": "Start Voting",
+    "revealVotes": "Reveal Votes",
+    "finalScore": "Final Score",
+    "saveScore": "Save Score",
+    "logOut": "Log Out",
+    "admin": "Admin",
+    "points": "points",
+    "voted_count": "{{count}} of {{total}} voted"
+  },
+  "common": {
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success",
+    "cancel": "Cancel",
+    "save": "Save",
+    "delete": "Delete",
+    "edit": "Edit",
+    "close": "Close"
+  }
+}

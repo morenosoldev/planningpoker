@@ -1,0 +1,128 @@
+{
+  "landing": {
+    "title": "Estimer",
+    "signIn": "Log ind",
+    "hero": {
+      "title": "Estimering Gjort",
+      "titleHighlight": "Nemt",
+      "subtitle": "Øg Produktivitet gennem Effektiv Planlægning. Forenkl din estimeringsproces, samarbejd effektivt med dit team, og træf bedre projektbeslutninger.",
+      "startPlanning": "Start Planlægning Nu",
+      "noSignup": "Ingen tilmelding krævet",
+      "startFree": "Start gratis"
+    },
+    "features": {
+      "title": "Alt du behøver for effektiv planlægning",
+      "subtitle": "Simple, kraftfulde værktøjer til at gøre din estimeringsproces smidig og samarbejdende",
+      "quickSimple": {
+        "title": "Hurtig & Simpel",
+        "description": "Kom i gang på sekunder. Ingen kompleks opsætning, ingen lange tutorials. Opret et rum og begynd at estimere med det samme."
+      },
+      "teamCollaboration": {
+        "title": "Team Samarbejde",
+        "description": "Inviter hele dit team med et simpelt link. Alle kan deltage øjeblikkeligt og deltage fra hvor som helst."
+      },
+      "realTimeResults": {
+        "title": "Realtids Resultater",
+        "description": "Se stemmer afsløret samtidigt. Spor fremskridt og træf beslutninger sammen med øjeblikkelig feedback."
+      },
+      "secureSessions": {
+        "title": "Sikre Sessioner",
+        "description": "Dine planlægningssessioner er private og sikre. Kun inviterede teammedlemmer kan deltage."
+      },
+      "storyManagement": {
+        "title": "Historie Håndtering",
+        "description": "Opret, administrer og spor nemt dine brugerhistorier. Hold din planlægning organiseret og effektiv."
+      },
+      "progressTracking": {
+        "title": "Fremskridt Sporing",
+        "description": "Overvåg dit teams estimeringsframskridt. Se afsluttede historier og spor din planlægningshastighed."
+      }
+    },
+    "howItWorks": {
+      "title": "Kom i Gang på 3 Nemme Trin",
+      "subtitle": "Start planlægning på minutter, ikke timer",
+      "step1": {
+        "title": "Opret et Rum",
+        "description": "Opret et planning poker rum til dit team med tilpassede indstillinger og personlige konfigurationer."
+      },
+      "step2": {
+        "title": "Inviter Dit Team",
+        "description": "Del et simpelt link med dine teammedlemmer. De kan deltage øjeblikkeligt uden nogen tilmelding."
+      },
+      "step3": {
+        "title": "Start Afstemning",
+        "description": "Opret brugerhistorier og begynd at estimere! Se resultater i realtid og træf informerede beslutninger sammen."
+      }
+    },
+    "cta": {
+      "title": "Klar til at starte planlægning?",
+      "subtitle": "Tilslut dig tusindvis af teams, der stoler på vores platform til deres agile planlægningssessioner. Begynd at estimere mere effektivt i dag.",
+      "startPlanning": "Start Planlægning Nu"
+    },
+    "footer": {
+      "title": "Planning Poker",
+      "subtitle": "Forenkl din estimeringsproces og øg dit teams produktivitet med vores intuitive planning poker platform.",
+      "copyright": "© 2025 Planning Poker. Lavet med ❤️ til agile teams overalt."
+    }
+  },
+  "createRoom": {
+    "title": "Opret Nyt Rum",
+    "roomName": "Rum Navn",
+    "placeholder": "Indtast et navn til dit planlægningsrum",
+    "cancel": "Annuller",
+    "create": "Opret Rum",
+    "creating": "Opretter...",
+    "subtitle": "Dit team vil kunne deltage ved hjælp af et delbart link, når rummet er oprettet.",
+    "error": "Der opstod en fejl under oprettelse af rummet"
+  },
+  "auth": {
+    "loginTitle": "Log ind på din konto",
+    "registerTitle": "Opret ny konto",
+    "username": "Brugernavn",
+    "email": "Email",
+    "password": "Adgangskode",
+    "login": "Log ind",
+    "register": "Opret konto",
+    "switchToRegister": "Har du ikke en konto? Opret en her",
+    "switchToLogin": "Har du allerede en konto? Log ind her",
+    "usernameRequired": "Brugernavn er påkrævet",
+    "error": "Der skete en fejl",
+    "usernamePlaceholder": "Dit brugernavn",
+    "emailPlaceholder": "Din email",
+    "passwordPlaceholder": "Din adgangskode"
+  },
+  "gameRoom": {
+    "inviteOthers": "Inviter andre",
+    "inviteTitle": "Inviter andre til at deltage",
+    "inviteSubtitle": "Del dette link med andre for at invitere dem til denne Planning Poker session:",
+    "copy": "Kopier",
+    "copied": "Kopieret!",
+    "close": "Luk",
+    "waiting": "Venter",
+    "voted": "Stemt",
+    "currentStory": "Nuværende Historie",
+    "completedStories": "Afsluttede Historier",
+    "newStory": "Ny Historie",
+    "storyTitle": "Historie Titel",
+    "storyDescription": "Historie Beskrivelse (valgfri)",
+    "createStory": "Opret Historie",
+    "startVoting": "Start Afstemning",
+    "revealVotes": "Afslør Stemmer",
+    "finalScore": "Endelig Score",
+    "saveScore": "Gem Score",
+    "logOut": "Log ud",
+    "admin": "Admin",
+    "points": "point",
+    "voted_count": "{{count}} af {{total}} har stemt"
+  },
+  "common": {
+    "loading": "Indlæser...",
+    "error": "Fejl",
+    "success": "Succes",
+    "cancel": "Annuller",
+    "save": "Gem",
+    "delete": "Slet",
+    "edit": "Rediger",
+    "close": "Luk"
+  }
+}
