@@ -59,7 +59,12 @@ jobs:
             fi
             docker run --privileged -d --name planning-server \
                 --restart always \
+                --dns=8.8.8.8 \
+                --dns=8.8.4.4 \
+                --dns-search="" \
                 -e "MONGODB_URI=${{ secrets.MONGODB_URI }}" \
                 -e "JWT_SECRET=${{ secrets.JWT_SECRET }}" \
+                -e "RUST_LOG=debug" \
+                -e "RUST_BACKTRACE=1" \
                 -p 8090:8080 \
                 ${{ secrets.DOCKER_USERNAME }}/planning-server:latest

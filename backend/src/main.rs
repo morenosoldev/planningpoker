@@ -23,9 +23,25 @@ async fn main() -> std::io::Result<()> {
     let jwt_secret = std::env::var("JWT_SECRET").expect("JWT_SECRET skal være sat");
     let mongodb_uri = std::env::var("MONGODB_URI").expect("MONGODB_URI skal være sat");
 
-    let client = Client::with_uri_str(&mongodb_uri).await.expect(
-        "Kunne ikke oprette forbindelse til MongoDB"
-    );
+    println!("Attempting to connect to MongoDB...");
+    println!("MongoDB URI (masked): {}", mongodb_uri.chars().take(20).collect::<String>() + "...");
+
+    let client = Client::with_uri_str(&mongodb_uri).await
+        .map_err(|e| {
+            eprintln!("MongoDB connection error: {:?}", e);
+            eprintln!("Full MongoDB URI for debugging: {}", mongodb_uri);
+            e
+        })
+        .expect("Kunne ikke oprette forbindelse til MongoDB");
+
+    // Test the connection
+    match client.list_database_names(None, None).await {
+        Ok(_) => println!("Successfully connected to MongoDB!"),
+        Err(e) => {
+            eprintln!("Failed to list databases: {:?}", e);
+            panic!("MongoDB connection test failed");
+        }
+    }
     let db = client.database("planning_poker");
 
     let game_server = GameServer::new();
