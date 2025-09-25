@@ -6,6 +6,81 @@ import EmojiPicker from "emoji-picker-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useFloating, offset, shift, flip, arrow } from "@floating-ui/react";
 
+interface InviteButtonProps {
+  roomId: string | undefined;
+}
+
+const InviteButton: React.FC<InviteButtonProps> = ({ roomId }) => {
+  const [showModal, setShowModal] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  const inviteLink = `${window.location.origin}/join/${roomId}`;
+
+  const copyToClipboard = async () => {
+    try {
+      await navigator.clipboard.writeText(inviteLink);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error("Failed to copy: ", err);
+    }
+  };
+
+  return (
+    <>
+      <button
+        onClick={() => setShowModal(true)}
+        className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center gap-2 text-sm font-medium"
+      >
+        <span>👥</span>
+        Invite others
+      </button>
+
+      {showModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 className="text-lg font-semibold mb-4">
+              Invite others to join
+            </h3>
+            <p className="text-gray-600 mb-4 text-sm">
+              Share this link with others to invite them to this Planning Poker
+              session:
+            </p>
+
+            <div className="flex items-center gap-2 mb-4">
+              <input
+                type="text"
+                value={inviteLink}
+                readOnly
+                className="flex-1 px-3 py-2 border border-gray-300 rounded bg-gray-50 text-sm"
+              />
+              <button
+                onClick={copyToClipboard}
+                className={`px-4 py-2 rounded transition-colors text-sm font-medium ${
+                  copied
+                    ? "bg-green-500 text-white"
+                    : "bg-purple-600 text-white hover:bg-purple-700"
+                }`}
+              >
+                {copied ? "Copied!" : "Copy"}
+              </button>
+            </div>
+
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => setShowModal(false)}
+                className="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400 transition-colors text-sm"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+};
+
 interface Story {
   id: string;
   title: string;
@@ -66,6 +141,7 @@ const GameRoom: React.FC = () => {
   const [room, setRoom] = useState<GameRoomData | null>(null);
   const [error, setError] = useState<string>("");
   const [isConnected, setIsConnected] = useState(false);
+  const [soundEnabled, setSoundEnabled] = useState(true);
   const hasVoted = !!room?.current_story?.votes.some(
     (v) => v.user_id === userId
   );
@@ -87,6 +163,77 @@ const GameRoom: React.FC = () => {
     placement: "top",
     middleware: [offset(10), flip(), shift(), arrow({ element: arrowRef })],
   });
+
+  // Sound effects utility functions
+  const playSound = useCallback(
+    (type: "vote" | "reveal" | "complete") => {
+      if (!soundEnabled) return;
+
+      try {
+        const audioContext = new (window.AudioContext ||
+          (window as any).webkitAudioContext)();
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+
+        // Different sounds for different actions
+        switch (type) {
+          case "vote":
+            oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+            oscillator.frequency.exponentialRampToValueAtTime(
+              600,
+              audioContext.currentTime + 0.1
+            );
+            gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(
+              0.01,
+              audioContext.currentTime + 0.1
+            );
+            break;
+          case "reveal":
+            oscillator.frequency.setValueAtTime(600, audioContext.currentTime);
+            oscillator.frequency.exponentialRampToValueAtTime(
+              800,
+              audioContext.currentTime + 0.2
+            );
+            gainNode.gain.setValueAtTime(0.15, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(
+              0.01,
+              audioContext.currentTime + 0.2
+            );
+            break;
+          case "complete":
+            // Celebration sound - multiple notes
+            oscillator.frequency.setValueAtTime(523, audioContext.currentTime); // C
+            oscillator.frequency.setValueAtTime(
+              659,
+              audioContext.currentTime + 0.1
+            ); // E
+            oscillator.frequency.setValueAtTime(
+              784,
+              audioContext.currentTime + 0.2
+            ); // G
+            gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(
+              0.01,
+              audioContext.currentTime + 0.3
+            );
+            break;
+        }
+
+        oscillator.start(audioContext.currentTime);
+        oscillator.stop(
+          audioContext.currentTime +
+            (type === "complete" ? 0.3 : type === "reveal" ? 0.2 : 0.1)
+        );
+      } catch (error) {
+        console.log("Audio not supported or failed:", error);
+      }
+    },
+    [soundEnabled]
+  );
 
   const fetchRoom = useCallback(async () => {
     try {
@@ -258,6 +405,7 @@ const GameRoom: React.FC = () => {
               case "vote":
                 console.log("Ny stemme modtaget:", message.content);
                 handleVote(message);
+                playSound("vote");
                 break;
 
               case "end_voting":
@@ -265,6 +413,7 @@ const GameRoom: React.FC = () => {
                 console.log("Current story:", room?.current_story);
                 setIsVotingOpen(false);
                 setShowResults(true);
+                playSound("reveal");
                 if (room?.admin_id === userId) {
                   const final_score = message.content.final_score;
                   setEditableScore(final_score);
@@ -306,8 +455,10 @@ const GameRoom: React.FC = () => {
                     ),
                   };
                 });
+                setIsVotingOpen(false);
                 setShowResults(false);
                 setEditableScore("");
+                playSound("complete");
                 break;
 
               case "completed_story":
@@ -702,25 +853,43 @@ const GameRoom: React.FC = () => {
 
       if (fromIndex === -1 || toIndex === -1) return null;
 
-      const centerX = 400;
-      const centerY = 300;
-      const radius = 200;
+      // Use the same positioning logic as the users
+      const totalParticipants = room.participants.length;
 
-      const fromAngle = -90 + (fromIndex * 360) / room.participants.length;
-      const toAngle = -90 + (toIndex * 360) / room.participants.length;
+      const calculatePosition = (participantIndex: number) => {
+        let x, y;
 
-      const fromX = Math.cos(fromAngle * (Math.PI / 180)) * radius + centerX;
-      const fromY = Math.sin(fromAngle * (Math.PI / 180)) * radius + centerY;
-      const toX = Math.cos(toAngle * (Math.PI / 180)) * radius + centerX;
-      const toY = Math.sin(toAngle * (Math.PI / 180)) * radius + centerY;
+        if (totalParticipants <= 2) {
+          // For 1-2 users, place them vertically (top and bottom)
+          x = 300; // Center horizontally
+          y = participantIndex === 0 ? 100 : 400; // One at top, one at bottom with more space
+        } else if (totalParticipants <= 6) {
+          // For 3-6 users, use a wider oval
+          const angleStep = (2 * Math.PI) / totalParticipants;
+          const angle = -Math.PI / 2 + participantIndex * angleStep; // Start from top
+          const radiusX = 250; // Wider horizontal radius
+          const radiusY = 180; // Increased vertical radius
+          x = 300 + Math.cos(angle) * radiusX;
+          y = 250 + Math.sin(angle) * radiusY;
+        } else {
+          // For more users, use a larger oval
+          const angleStep = (2 * Math.PI) / totalParticipants;
+          const angle = -Math.PI / 2 + participantIndex * angleStep;
+          const radiusX = 280;
+          const radiusY = 200; // Increased vertical radius
+          x = 300 + Math.cos(angle) * radiusX;
+          y = 250 + Math.sin(angle) * radiusY;
+        }
+
+        return { x, y };
+      };
+
+      const fromPos = calculatePosition(fromIndex);
+      const toPos = calculatePosition(toIndex);
 
       // Beregn kontrolpunkt for bue-animation med mere naturlig bue
-      const midAngle = (fromAngle + toAngle) / 2;
-      const controlDistance = radius * 0.5;
-      const controlX =
-        centerX + Math.cos(midAngle * (Math.PI / 180)) * controlDistance;
-      const controlY =
-        centerY + Math.sin(midAngle * (Math.PI / 180)) * controlDistance;
+      const controlX = (fromPos.x + toPos.x) / 2;
+      const controlY = Math.min(fromPos.y, toPos.y) - 50; // Arc above the users
 
       return (
         <motion.div
@@ -728,14 +897,14 @@ const GameRoom: React.FC = () => {
           className="absolute text-3xl pointer-events-none z-50"
           initial={{
             scale: 0.5,
-            x: fromX,
-            y: fromY,
+            x: fromPos.x,
+            y: fromPos.y,
             opacity: 0,
           }}
           animate={{
             scale: [0.5, 1.5, 1],
-            x: [fromX, controlX, toX],
-            y: [fromY, controlY, toY],
+            x: [fromPos.x, controlX, toPos.x],
+            y: [fromPos.y, controlY, toPos.y],
             opacity: [0, 1, 1, 0],
           }}
           transition={{
@@ -763,11 +932,27 @@ const GameRoom: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="h-screen bg-gray-100 flex flex-col">
       {/* Top bar med profilbillede upload */}
       <div className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 py-2 flex justify-end items-center">
+        <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
+          {/* Room name in header */}
+          <h1 className="text-lg font-semibold text-gray-800">{room?.name}</h1>
           <div className="flex items-center space-x-4">
+            {/* Invite others button */}
+            <InviteButton roomId={roomId} />
+            {/* Sound toggle button */}
+            <button
+              onClick={() => setSoundEnabled(!soundEnabled)}
+              className={`p-2 rounded-lg transition-colors ${
+                soundEnabled
+                  ? "bg-purple-100 text-purple-600 hover:bg-purple-200"
+                  : "bg-gray-100 text-gray-400 hover:bg-gray-200"
+              }`}
+              title={soundEnabled ? "Disable sounds" : "Enable sounds"}
+            >
+              {soundEnabled ? "🔊" : "🔇"}
+            </button>
             <ProfileImageUpload onImageUpdated={handleProfileImageUpdate} />
             <div className="flex items-center space-x-2">
               {room?.participants.find((p) => p.id === userId)
@@ -812,360 +997,551 @@ const GameRoom: React.FC = () => {
         <div className="p-4 bg-red-100 text-red-700 rounded-lg">{error}</div>
       )}
 
-      <div className="flex">
-        {/* Hovedindhold */}
-        <div className="flex-1 p-4">
-          {/* Rum information */}
-          <div className="bg-white rounded-lg p-4 shadow mb-4">
-            <h2 className="text-xl font-bold">{room?.name}</h2>
-            <p className="text-gray-600">Kode: {room?.invite_code}</p>
-          </div>
+      {/* Main content area - fills remaining height */}
 
-          <div className="flex gap-4">
-            <div className="w-full">
-              {room?.current_story ? (
-                <div className="bg-white rounded-lg p-4 shadow">
-                  <h3 className="text-lg font-semibold mb-4">Aktiv Historie</h3>
-                  <div className="mb-4">
-                    <h4 className="font-medium">{room.current_story.title}</h4>
-                    <p className="text-gray-600">
-                      {room.current_story.description}
-                    </p>
-                    {isAdmin &&
-                      room.current_story &&
-                      !isVotingOpen &&
-                      !showResults && (
-                        <button
-                          onClick={startVoting}
-                          className="mt-4 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition"
-                        >
-                          Start Afstemning
-                        </button>
-                      )}
-                    {isAdmin && showResults && (
-                      <div className="mt-4 space-y-2">
-                        <label className="block text-sm font-medium text-gray-700">
-                          Endelig score (kan justeres):
-                        </label>
-                        <input
-                          type="number"
-                          value={editableScore}
-                          onChange={(e) =>
-                            setEditableScore(
-                              e.target.value === ""
-                                ? ""
-                                : Number(e.target.value)
-                            )
-                          }
-                          className="w-32 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500"
-                        />
-                        <button
-                          onClick={saveFinalScore}
-                          className="ml-4 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition"
-                        >
-                          💾 Gem endelig score
-                        </button>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Vis stemmer */}
-                  <div className="mb-4">
-                    <h4 className="font-medium mb-2">Status:</h4>
-                    <p className="text-gray-600">
-                      {isVotingOpen
-                        ? `${room.current_story.votes.length} af ${room.participants.length} har stemt`
-                        : showResults
-                        ? "Afstemning afsluttet"
-                        : "Venter på at afstemningen starter"}
-                    </p>
-                  </div>
-                </div>
-              ) : (
-                room?.admin_id === userId && (
-                  <div className="bg-white rounded-lg p-4 shadow">
-                    <h3 className="text-lg font-semibold mb-4">
-                      Opret ny historie
-                    </h3>
-                    <div className="space-y-2">
-                      <input
-                        type="text"
-                        value={newStoryTitle}
-                        onChange={(e) => setNewStoryTitle(e.target.value)}
-                        className="w-full p-2 border rounded"
-                        placeholder="Titel..."
-                      />
-                      <textarea
-                        value={newStoryDescription}
-                        onChange={(e) => setNewStoryDescription(e.target.value)}
-                        className="w-full p-2 border rounded"
-                        placeholder="Beskrivelse..."
-                      />
-                      <button
-                        onClick={startNewStory}
-                        disabled={!newStoryTitle}
-                        className="w-full px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:bg-gray-300 disabled:text-black"
-                      >
-                        Opret historie
-                      </button>
-                    </div>
-                  </div>
-                )
-              )}
-            </div>
-          </div>
-
-          <div className="w-full mt-5">
-            <div className="bg-white rounded-lg p-8 shadow">
-              <div className="relative w-[800px] h-[600px] mx-auto">
-                {/* Render emoji reactions */}
-                {renderEmojiReactions()}
-
-                {/* Deltagere i cirkel */}
-                {room?.participants.map((participant, index) => {
-                  const angleOffset = -90;
-                  const angleStep = 360 / room.participants.length;
-                  const angle = angleOffset + index * angleStep;
-                  const radius = 200;
-                  const centerX = 400;
-                  const centerY = 300;
-                  const x =
-                    Math.cos(angle * (Math.PI / 180)) * radius + centerX;
-                  const y =
-                    Math.sin(angle * (Math.PI / 180)) * radius + centerY;
-
-                  return (
-                    <div
-                      key={participant.id}
-                      className="absolute transform -translate-x-1/2 -translate-y-1/2"
-                      style={{
-                        left: `${x}px`,
-                        top: `${y}px`,
-                      }}
-                    >
-                      <div className="flex flex-col items-center space-y-2">
-                        <div
-                          className="relative cursor-pointer"
-                          onClick={() => handleProfileClick(participant.id)}
-                          ref={
-                            participant.id === selectedUserId
-                              ? refs.setReference
-                              : null
-                          }
-                        >
-                          {participant.profile_image ? (
-                            <img
-                              src={`${
-                                import.meta.env.VITE_API_BASE_URL ||
-                                "http://localhost:8080"
-                              }${participant.profile_image}`}
-                              alt={participant.username}
-                              className="w-16 h-16 rounded-full object-cover border-4 border-purple-500 shadow-lg hover:scale-110 transition-transform duration-200"
-                            />
-                          ) : (
-                            <div className="w-16 h-16 rounded-full bg-purple-200 flex items-center justify-center border-4 border-purple-500 shadow-lg hover:scale-110 transition-transform duration-200">
-                              <span className="text-xl font-bold text-purple-600">
-                                {participant.username.charAt(0).toUpperCase()}
-                              </span>
-                            </div>
-                          )}
-                          {participant.id === room.admin_id && (
-                            <span className="absolute -top-1 -right-1 bg-purple-500 text-white text-xs px-2 py-0.5 rounded-full shadow-md">
-                              Admin
-                            </span>
-                          )}
-                          {/* Online status indikator */}
-                          <div
-                            className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-white ${
-                              isConnected ? "bg-green-500" : "bg-gray-400"
-                            }`}
-                          />
-
-                          {/* Vis stemme hvis afstemning er i gang eller afsluttet */}
-                          {room.current_story &&
-                            (isVotingOpen || showResults) && (
-                              <div className="absolute -right-12 top-1/2 transform -translate-y-1/2">
-                                <div
-                                  className={`
-                                  w-10 h-10 rounded-full 
-                                  ${
-                                    room.current_story.votes.some(
-                                      (v) => v.user_id === participant.id
-                                    )
-                                      ? "bg-purple-500 text-white"
-                                      : "bg-gray-200 text-gray-400"
-                                  } 
-                                  flex items-center justify-center font-bold shadow-md
-                                  ${
-                                    !showResults &&
-                                    room.current_story.votes.some(
-                                      (v) => v.user_id === participant.id
-                                    )
-                                      ? "bg-green-500"
-                                      : ""
-                                  }
-                                `}
-                                >
-                                  {showResults
-                                    ? room.current_story.votes.find(
-                                        (v) => v.user_id === participant.id
-                                      )?.value || "-"
-                                    : room.current_story.votes.some(
-                                        (v) => v.user_id === participant.id
-                                      )
-                                    ? "✓"
-                                    : "?"}
-                                </div>
-                              </div>
-                            )}
-                        </div>
-                        <div className="bg-white px-3 py-1.5 rounded-full shadow-md">
-                          <span className="text-sm font-medium text-gray-700 whitespace-nowrap">
-                            {participant.username}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-
-                {/* Emoji Picker Popup */}
-                <AnimatePresence>
-                  {showEmojiPicker && selectedUserId && (
+      <div className="flex flex-1">
+        {/* Left Sidebar - Voted Users */}
+        <div className="w-64 bg-white border-r border-gray-200 p-4 overflow-y-auto relative">
+          {/* Waiting Section */}
+          {room?.current_story && isVotingOpen && (
+            <div className="mb-6">
+              <h3 className="text-lg font-semibold mb-4 text-gray-600 flex items-center gap-2">
+                <span>⏳</span> Waiting
+                <span className="bg-gray-200 text-gray-700 text-xs px-2 py-1 rounded-full">
+                  {
+                    room.participants.filter(
+                      (p) =>
+                        !room?.current_story?.votes?.some(
+                          (v) => v.user_id === p.id
+                        )
+                    ).length
+                  }
+                </span>
+              </h3>
+              <div className="space-y-3">
+                {room.participants
+                  .filter((participant) => {
+                    const hasVoted =
+                      room?.current_story?.votes?.some(
+                        (v) => v.user_id === participant.id
+                      ) || false;
+                    return !hasVoted;
+                  })
+                  .map((participant) => (
                     <motion.div
-                      ref={refs.setFloating}
-                      className="absolute z-50"
-                      style={{
-                        position: strategy,
-                        top: y ?? 0,
-                        left: x ?? 0,
-                      }}
-                      initial={{ opacity: 0, scale: 0.8 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0.8 }}
-                      transition={{ duration: 0.2 }}
+                      key={participant.id}
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: 20 }}
+                      className="flex items-center space-x-3 p-2 rounded-lg bg-gray-50 border border-gray-200 hover:bg-gray-100 transition-colors"
                     >
-                      <div
-                        ref={arrowRef}
-                        className="absolute w-4 h-4 bg-white transform rotate-45"
-                        style={{
-                          top: middlewareData.arrow?.y,
-                          left: middlewareData.arrow?.x,
-                        }}
-                      />
-                      <div className="relative bg-white rounded-lg shadow-xl p-2">
-                        <EmojiPicker
-                          onEmojiClick={(emojiData) => {
-                            if (selectedUserId) {
-                              sendEmojiReaction(
-                                emojiData.emoji,
-                                selectedUserId
-                              );
-                            }
-                          }}
-                          width={300}
-                          height={400}
-                        />
+                      <div className="relative">
+                        {participant.profile_image ? (
+                          <img
+                            src={`${
+                              import.meta.env.VITE_API_BASE_URL ||
+                              "http://localhost:8080"
+                            }${participant.profile_image}`}
+                            alt={participant.username}
+                            className="w-8 h-8 rounded-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-8 h-8 rounded-full bg-purple-200 flex items-center justify-center">
+                            <span className="text-xs font-bold text-purple-600">
+                              {participant.username.charAt(0).toUpperCase()}
+                            </span>
+                          </div>
+                        )}
+                        {participant.id === room.admin_id && (
+                          <div className="absolute -top-1 -right-1 w-3 h-3 bg-purple-500 rounded-full"></div>
+                        )}
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-gray-900">
+                          {participant.username}
+                        </p>
                       </div>
                     </motion.div>
-                  )}
-                </AnimatePresence>
-
-                {/* Centrum indhold med forbedret design */}
-                <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-                  <div className="bg-white rounded-2xl shadow-xl p-6 w-64 text-center border-2 border-purple-100">
-                    <h3 className="font-bold text-xl text-purple-600 mb-3">
-                      {room.name}
-                    </h3>
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between px-2 py-1 bg-purple-50 rounded-lg">
-                        <span className="text-sm text-purple-600">
-                          Deltagere
-                        </span>
-                        <span className="font-bold text-purple-700">
-                          {room.participants.length}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between px-2 py-1 bg-purple-50 rounded-lg">
-                        <span className="text-sm text-purple-600">
-                          Historier
-                        </span>
-                        <span className="font-bold text-purple-700">
-                          {completedStories.length}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between px-2 py-1 bg-purple-50 rounded-lg">
-                        <span className="text-sm text-purple-600">
-                          Gennemsnit
-                        </span>
-                        <span className="font-bold text-purple-700">
-                          {completedStories.length > 0
-                            ? (
-                                completedStories.reduce(
-                                  (acc, story) => acc + story.final_score,
-                                  0
-                                ) / completedStories.length
-                              ).toFixed(1)
-                            : "-"}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                  ))}
               </div>
+            </div>
+          )}
+
+          {/* Voted Section */}
+          <div>
+            <h3 className="text-lg font-semibold mb-4 text-purple-600 flex items-center gap-2">
+              <span>✓</span> Voted
+              <span className="bg-purple-200 text-purple-700 text-xs px-2 py-1 rounded-full">
+                {room?.current_story && (isVotingOpen || showResults)
+                  ? room.current_story.votes.length
+                  : room?.participants.length || 0}
+              </span>
+            </h3>
+            <div className="space-y-3">
+              {room?.participants
+                .filter((participant) => {
+                  if (!room?.current_story || (!isVotingOpen && !showResults)) {
+                    return true; // Show everyone when not voting
+                  }
+                  const hasVoted =
+                    room?.current_story?.votes?.some(
+                      (v) => v.user_id === participant.id
+                    ) || false;
+                  return hasVoted;
+                })
+                .map((participant) => {
+                  const vote = room?.current_story?.votes?.find(
+                    (v) => v.user_id === participant.id
+                  );
+
+                  return (
+                    <motion.div
+                      key={participant.id}
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: -20 }}
+                      className="flex items-center space-x-3 p-2 rounded-lg bg-purple-50 border border-purple-200 hover:bg-purple-100 transition-colors"
+                    >
+                      <div className="relative">
+                        {participant.profile_image ? (
+                          <img
+                            src={`${
+                              import.meta.env.VITE_API_BASE_URL ||
+                              "http://localhost:8080"
+                            }${participant.profile_image}`}
+                            alt={participant.username}
+                            className="w-8 h-8 rounded-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-8 h-8 rounded-full bg-purple-200 flex items-center justify-center">
+                            <span className="text-xs font-bold text-purple-600">
+                              {participant.username.charAt(0).toUpperCase()}
+                            </span>
+                          </div>
+                        )}
+                        {participant.id === room.admin_id && (
+                          <div className="absolute -top-1 -right-1 w-3 h-3 bg-purple-500 rounded-full"></div>
+                        )}
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-gray-900">
+                          {participant.username}
+                        </p>
+                      </div>
+                      {room?.current_story && (isVotingOpen || showResults) && (
+                        <div className="text-sm">
+                          {showResults && vote ? (
+                            <span className="font-bold text-purple-600 bg-white px-2 py-1 rounded">
+                              {vote.value === -1 ? "?" : vote.value}
+                            </span>
+                          ) : (
+                            <span className="text-green-600 font-bold">✓</span>
+                          )}
+                        </div>
+                      )}
+                    </motion.div>
+                  );
+                })}
             </div>
           </div>
         </div>
 
-        {/* Sidebar med gemte historier */}
-        <div className="w-80 bg-white p-4 border-l border-gray-200 overflow-y-auto h-screen">
-          <h3 className="text-lg font-semibold mb-4">Gemte Historier</h3>
-          <div className="space-y-4">
-            {completedStories.map((story) => (
-              <div key={story.id} className="p-4 bg-gray-50 rounded-lg">
-                <h4 className="font-medium">{story.title}</h4>
-                {story.description && (
-                  <p className="text-gray-600 text-sm mt-1">
-                    {story.description}
-                  </p>
-                )}
-                <div className="mt-2 flex items-center justify-between">
-                  <span className="text-sm text-gray-500">
-                    {new Date(story.completed_at * 1000).toLocaleDateString()}
-                  </span>
-                  <span className="font-bold text-purple-600">
-                    Score: {story.final_score}
-                  </span>
+        {/* Center - Main Content */}
+        <div className="flex-1 flex flex-col">
+          {/* User Circle - Centered like Kollabe */}
+          <div className="flex-1 bg-white flex items-center justify-center p-8">
+            <div className="relative w-[600px] h-[500px]">
+              {/* Render emoji reactions */}
+              {renderEmojiReactions()}
+
+              {/* Users positioned in circle/oval around center */}
+              {room?.participants.map((participant, index) => {
+                const totalParticipants = room.participants.length;
+
+                // Create an oval/elliptical layout like Kollabe
+                let angle, x, y;
+
+                if (totalParticipants <= 2) {
+                  // For 1-2 users, place them vertically (top and bottom)
+                  x = 300; // Center horizontally
+                  y = index === 0 ? 100 : 400; // One at top, one at bottom with more space
+                } else if (totalParticipants <= 6) {
+                  // For 3-6 users, use a wider oval
+                  const angleStep = (2 * Math.PI) / totalParticipants;
+                  angle = -Math.PI / 2 + index * angleStep; // Start from top
+                  const radiusX = 250; // Wider horizontal radius
+                  const radiusY = 180; // Increased vertical radius
+                  x = 300 + Math.cos(angle) * radiusX;
+                  y = 250 + Math.sin(angle) * radiusY;
+                } else {
+                  // For more users, use a larger oval
+                  const angleStep = (2 * Math.PI) / totalParticipants;
+                  angle = -Math.PI / 2 + index * angleStep;
+                  const radiusX = 280;
+                  const radiusY = 200; // Increased vertical radius
+                  x = 300 + Math.cos(angle) * radiusX;
+                  y = 250 + Math.sin(angle) * radiusY;
+                }
+
+                return (
+                  <div
+                    key={participant.id}
+                    className="absolute transform -translate-x-1/2 -translate-y-1/2"
+                    style={{
+                      left: `${x}px`,
+                      top: `${y}px`,
+                    }}
+                  >
+                    <div className="flex flex-col items-center space-y-2">
+                      <div
+                        className="relative cursor-pointer"
+                        onClick={() => handleProfileClick(participant.id)}
+                        ref={
+                          participant.id === selectedUserId
+                            ? refs.setReference
+                            : null
+                        }
+                      >
+                        {participant.profile_image ? (
+                          <img
+                            src={`${
+                              import.meta.env.VITE_API_BASE_URL ||
+                              "http://localhost:8080"
+                            }${participant.profile_image}`}
+                            alt={participant.username}
+                            className="w-16 h-16 rounded-full object-cover border-4 border-purple-500 shadow-lg hover:scale-110 transition-transform duration-200"
+                          />
+                        ) : (
+                          <div className="w-16 h-16 rounded-full bg-purple-200 flex items-center justify-center border-4 border-purple-500 shadow-lg hover:scale-110 transition-transform duration-200">
+                            <span className="text-xl font-bold text-purple-600">
+                              {participant.username.charAt(0).toUpperCase()}
+                            </span>
+                          </div>
+                        )}
+                        {participant.id === room.admin_id && (
+                          <span className="absolute -top-1 -right-1 bg-purple-500 text-white text-xs px-2 py-0.5 rounded-full shadow-md">
+                            Admin
+                          </span>
+                        )}
+                        <div
+                          className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-white ${
+                            isConnected
+                              ? "bg-green-500 animate-pulse"
+                              : "bg-gray-400"
+                          }`}
+                        />
+                      </div>
+                      <div className="bg-white px-3 py-1.5 rounded-full shadow-md">
+                        <span className="text-sm font-medium text-gray-700 whitespace-nowrap">
+                          {participant.username}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+
+              {/* Center area - "Reveal votes" button or status */}
+              <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+                <div className="bg-white rounded-2xl shadow-xl p-6 min-w-[200px] text-center border-2 border-purple-100">
+                  {isVotingOpen && !showResults && (
+                    <div className="mb-4">
+                      <div className="w-full bg-gray-200 rounded-full h-3 mb-2 shadow-inner">
+                        <div
+                          className="bg-gradient-to-r from-purple-500 to-purple-600 h-3 rounded-full transition-all duration-500 relative overflow-hidden"
+                          style={{
+                            width: `${
+                              ((room?.current_story?.votes.length || 0) /
+                                (room?.participants.length || 1)) *
+                              100
+                            }%`,
+                          }}
+                        >
+                          <div className="absolute inset-0 bg-white opacity-30 animate-pulse"></div>
+                        </div>
+                      </div>
+                      <p className="text-sm text-gray-600 mb-3 font-medium">
+                        {room?.current_story?.votes.length || 0} of{" "}
+                        {room?.participants.length || 0} voted
+                        {(room?.current_story?.votes.length || 0) ===
+                          (room?.participants.length || 0) && (
+                          <span className="ml-2 text-green-600 animate-bounce">
+                            ✓ All done!
+                          </span>
+                        )}
+                      </p>
+                    </div>
+                  )}
+                  {isVotingOpen &&
+                    !showResults &&
+                    room?.admin_id === userId && (
+                      <button
+                        onClick={endVoting}
+                        className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition text-sm font-medium animate-pulse"
+                      >
+                        Reveal votes
+                      </button>
+                    )}
+                  {showResults && (
+                    <div>
+                      <h3 className="font-bold text-xl text-purple-600 mb-2">
+                        Results
+                      </h3>
+                      <p className="text-sm text-gray-600">Voting completed</p>
+                    </div>
+                  )}
+                  {!isVotingOpen && !showResults && (
+                    <div>
+                      <h3 className="font-bold text-xl text-purple-600 mb-2">
+                        Estimer
+                      </h3>
+                      <p className="text-sm text-gray-600">
+                        {room?.current_story
+                          ? "Ready to vote"
+                          : "Waiting for story"}
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
-            ))}
+            </div>
+
+            {/* Emoji Picker Popup */}
+            <AnimatePresence>
+              {showEmojiPicker && selectedUserId && (
+                <motion.div
+                  ref={refs.setFloating}
+                  className="absolute z-50"
+                  style={{
+                    position: strategy,
+                    top: y ?? 0,
+                    left: x ?? 0,
+                  }}
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.8 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <div
+                    ref={arrowRef}
+                    className="absolute w-4 h-4 bg-white transform rotate-45"
+                    style={{
+                      top: middlewareData.arrow?.y,
+                      left: middlewareData.arrow?.x,
+                    }}
+                  />
+                  <div className="relative bg-white rounded-lg shadow-xl p-2">
+                    <EmojiPicker
+                      onEmojiClick={(emojiData) => {
+                        if (selectedUserId) {
+                          sendEmojiReaction(emojiData.emoji, selectedUserId);
+                        }
+                      }}
+                      width={300}
+                      height={400}
+                    />
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        </div>
+
+        {/* Right Sidebar - Stories */}
+        <div className="w-80 bg-white border-l border-gray-200 p-4 overflow-y-auto">
+          {/* Current Story */}
+          {room?.current_story ? (
+            <div className="mb-6">
+              <h3 className="text-lg font-semibold mb-3 text-purple-600">
+                Current Story
+              </h3>
+              <div className="bg-purple-50 rounded-lg p-4 border border-purple-200">
+                <h4 className="font-medium text-gray-900 mb-2">
+                  {room.current_story.title}
+                </h4>
+                <p className="text-gray-600 text-sm mb-3">
+                  {room.current_story.description}
+                </p>
+
+                {/* Voting Status */}
+                <div className="mb-3">
+                  <p className="text-sm text-gray-600">
+                    {isVotingOpen
+                      ? `${room.current_story.votes.length} af ${room.participants.length} har stemt`
+                      : showResults
+                      ? "Afstemning afsluttet"
+                      : "Venter på at afstemningen starter"}
+                  </p>
+                </div>
+
+                {/* Admin Controls */}
+                {isAdmin &&
+                  room.current_story &&
+                  !isVotingOpen &&
+                  !showResults && (
+                    <button
+                      onClick={startVoting}
+                      className="w-full px-3 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition text-sm"
+                    >
+                      Start Voting
+                    </button>
+                  )}
+
+                {isAdmin && showResults && (
+                  <div className="space-y-2">
+                    <label className="block text-xs font-medium text-gray-700">
+                      Final score:
+                    </label>
+                    <div className="flex gap-2">
+                      <input
+                        type="number"
+                        value={editableScore}
+                        onChange={(e) =>
+                          setEditableScore(
+                            e.target.value === "" ? "" : Number(e.target.value)
+                          )
+                        }
+                        className="flex-1 px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-purple-500 focus:border-purple-500"
+                      />
+                      <button
+                        onClick={saveFinalScore}
+                        className="px-3 py-1 bg-purple-600 text-white rounded hover:bg-purple-700 transition text-sm"
+                      >
+                        Save
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : (
+            room?.admin_id === userId && (
+              <div className="mb-6">
+                <h3 className="text-lg font-semibold mb-3 text-purple-600">
+                  Create Story
+                </h3>
+                <div className="space-y-3">
+                  <input
+                    type="text"
+                    value={newStoryTitle}
+                    onChange={(e) => setNewStoryTitle(e.target.value)}
+                    className="w-full p-2 text-sm border rounded focus:outline-none focus:ring-purple-500 focus:border-purple-500"
+                    placeholder="Story title..."
+                  />
+                  <textarea
+                    value={newStoryDescription}
+                    onChange={(e) => setNewStoryDescription(e.target.value)}
+                    className="w-full p-2 text-sm border rounded h-20 resize-none focus:outline-none focus:ring-purple-500 focus:border-purple-500"
+                    placeholder="Description..."
+                  />
+                  <button
+                    onClick={startNewStory}
+                    disabled={!newStoryTitle}
+                    className="w-full px-3 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:bg-gray-300 disabled:text-gray-500 transition text-sm"
+                  >
+                    Create Story
+                  </button>
+                </div>
+              </div>
+            )
+          )}
+
+          {/* Completed Stories */}
+          <div className="border-t-2 border-gray-200 pt-4">
+            <h3 className="text-lg font-semibold mb-4 text-gray-800 flex items-center gap-2">
+              <span>📚</span> Completed Stories
+              <span className="bg-gray-200 text-gray-600 text-xs px-2 py-1 rounded-full">
+                {completedStories.length}
+              </span>
+            </h3>
+            <div className="space-y-3 max-h-64 overflow-y-auto">
+              {completedStories.map((story) => (
+                <div
+                  key={story.id}
+                  className="p-3 bg-gradient-to-r from-green-50 to-blue-50 rounded-lg border-l-4 border-green-400 shadow-sm hover:shadow-md transition-shadow"
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <h4 className="font-medium text-sm text-gray-900 mb-1">
+                        {story.title}
+                      </h4>
+                      {story.description && (
+                        <p className="text-gray-600 text-xs mb-2">
+                          {story.description}
+                        </p>
+                      )}
+                      <span className="text-xs text-gray-500">
+                        {new Date(
+                          story.completed_at * 1000
+                        ).toLocaleDateString()}
+                      </span>
+                    </div>
+                    <div className="ml-3 flex flex-col items-center">
+                      <span className="font-bold text-green-600 text-lg bg-white px-2 py-1 rounded-full border-2 border-green-200">
+                        {story.final_score}
+                      </span>
+                      <span className="text-xs text-gray-500 mt-1">points</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Kort sektion i bunden */}
-      {isVotingOpen && !hasVoted && (
-        <div className="fixed bottom-0 left-0 right-0 bg-white shadow-lg p-4">
-          <div className="max-w-7xl mx-auto">
-            <p className="text-center text-lg mb-4">Pick a card below</p>
-            <div className="flex justify-center gap-4">
-              {[0, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89, "?"].map(
-                (value, index) => (
-                  <button
-                    key={`vote-${value}-${index}`}
-                    onClick={() =>
-                      submitVote(typeof value === "number" ? value : -1)
-                    }
-                    className="w-20 h-32 rounded-lg bg-white border-2 border-purple-500 hover:border-purple-600 hover:bg-purple-50 flex items-center justify-center text-2xl font-bold text-purple-500 transition-all transform hover:scale-110"
-                  >
-                    {value}
-                  </button>
-                )
-              )}
-            </div>
+      {/* Kort sektion i bunden - always visible */}
+      <div className="p-4 bg-white border-t border-gray-200">
+        <div className="max-w-7xl mx-auto">
+          {!isVotingOpen && !showResults && (
+            <p className="text-center text-gray-500 text-sm mb-4">
+              Pick a card when voting starts
+            </p>
+          )}
+          <div className="flex justify-center gap-3">
+            {[0, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89, "?"].map((value, index) => {
+              const numValue = typeof value === "number" ? value : -1;
+              const getCardColor = () => {
+                if (!isVotingOpen || hasVoted)
+                  return "bg-gray-100 border-gray-300 text-gray-400";
+                if (numValue <= 3)
+                  return "bg-green-50 border-green-400 text-green-600 hover:border-green-500 hover:bg-green-100";
+                if (numValue <= 13)
+                  return "bg-yellow-50 border-yellow-400 text-yellow-600 hover:border-yellow-500 hover:bg-yellow-100";
+                if (numValue <= 55)
+                  return "bg-orange-50 border-orange-400 text-orange-600 hover:border-orange-500 hover:bg-orange-100";
+                return "bg-red-50 border-red-400 text-red-600 hover:border-red-500 hover:bg-red-100";
+              };
+
+              return (
+                <button
+                  key={`vote-${value}-${index}`}
+                  onClick={() => submitVote(numValue)}
+                  disabled={!isVotingOpen || hasVoted}
+                  title={
+                    numValue === -1
+                      ? "Unknown complexity"
+                      : numValue <= 3
+                      ? "Small story"
+                      : numValue <= 13
+                      ? "Medium story"
+                      : numValue <= 55
+                      ? "Large story"
+                      : "Very large story"
+                  }
+                  className={`w-14 h-20 cursor-pointer rounded-xl border-2 flex items-center justify-center text-2xl font-bold transition-all duration-200 ${
+                    !isVotingOpen || hasVoted
+                      ? "cursor-not-allowed"
+                      : "transform hover:scale-110 hover:-translate-y-1 hover:shadow-lg hover:rotate-1"
+                  } ${getCardColor()}`}
+                >
+                  {value}
+                </button>
+              );
+            })}
           </div>
         </div>
-      )}
+      </div>
     </div>
   );
 };

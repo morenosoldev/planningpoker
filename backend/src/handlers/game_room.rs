@@ -193,6 +193,121 @@ pub async fn join_room(
     Ok(HttpResponse::Ok().json(room_response))
 }
 
+#[post("/rooms/{room_id}/join")]
+pub async fn join_room_by_id(
+    req: HttpRequest,
+    path: web::Path<String>,
+    db: web::Data<Database>
+) -> Result<HttpResponse> {
+    let user_id = validate_token(req.clone()).await?;
+    let room_id = path.into_inner();
+
+    let collection = db.collection::<GameRoom>("game_rooms");
+
+    // Convert room_id string to ObjectId
+    let object_id = match mongodb::bson::oid::ObjectId::parse_str(&room_id) {
+        Ok(id) => id,
+        Err(_) => {
+            return Ok(
+                HttpResponse::BadRequest().json(
+                    serde_json::json!({
+                        "message": "Ugyldigt rum ID"
+                    })
+                )
+            );
+        }
+    };
+
+    let room = match
+        collection
+            .find_one(mongodb::bson::doc! { "_id": object_id }, None).await
+            .map_err(ErrorInternalServerError)?
+    {
+        Some(room) => room,
+        None => {
+            return Ok(
+                HttpResponse::NotFound().json(
+                    serde_json::json!({
+                        "message": "Spilrum ikke fundet"
+                    })
+                )
+            );
+        }
+    };
+
+    // Check if user is already in the room
+    if room.participants.contains(&user_id) {
+        // User is already in room, just return the room data
+        let room_response = GameRoomResponse {
+            id: room.id.unwrap().to_string(),
+            name: room.name,
+            invite_code: room.invite_code,
+            admin_id: room.admin_id,
+            participants: room.participants
+                .iter()
+                .map(|id| ParticipantInfo {
+                    id: id.to_string(),
+                    username: "".to_string(),
+                    profile_image: None,
+                })
+                .collect(),
+            current_story: room.current_story,
+            completed_stories: room.completed_stories,
+            stories: room.stories,
+            created_at: room.created_at,
+            updated_at: room.updated_at,
+        };
+
+        return Ok(HttpResponse::Ok().json(room_response));
+    }
+
+    // Add user to participants
+    let now = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs() as i64;
+
+    let update_result = collection
+        .update_one(
+            mongodb::bson::doc! { "_id": object_id },
+            mongodb::bson::doc! {
+                "$push": { "participants": &user_id },
+                "$set": { "updated_at": now }
+            },
+            None
+        ).await
+        .map_err(ErrorInternalServerError)?;
+
+    if update_result.modified_count == 0 {
+        return Ok(
+            HttpResponse::InternalServerError().json(
+                serde_json::json!({
+                    "message": "Kunne ikke tilføje dig til spilrummet"
+                })
+            )
+        );
+    }
+
+    let room_response = GameRoomResponse {
+        id: room.id.unwrap().to_string(),
+        name: room.name,
+        invite_code: room.invite_code,
+        admin_id: room.admin_id,
+        participants: room.participants
+            .iter()
+            .map(|id| ParticipantInfo {
+                id: id.to_string(),
+                username: "".to_string(),
+                profile_image: None,
+            })
+            .collect(),
+        current_story: room.current_story,
+        completed_stories: room.completed_stories,
+        stories: room.stories,
+        created_at: room.created_at,
+        updated_at: now,
+    };
+
+    Ok(HttpResponse::Ok().json(room_response))
+}
+
 async fn get_participants_info(
     db: &Database,
     participant_ids: &[String]

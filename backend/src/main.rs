@@ -9,7 +9,7 @@ use actix_cors::Cors;
 use actix_web::{ web, App, HttpServer };
 use dotenv::dotenv;
 use handlers::auth::{ login, register, get_me };
-use handlers::game_room::{ create_room, join_room, get_room, room_ws };
+use handlers::game_room::{ create_room, join_room, join_room_by_id, get_room, room_ws };
 use websocket::GameServer;
 use mongodb::Client;
 use crate::handlers::{ auth, game_room };
@@ -38,6 +38,8 @@ async fn main() -> std::io::Result<()> {
                 Cors::default()
                     .allowed_origin("https://www.estimer.dk")
                     .allowed_origin("https://estimer.dk")
+                    .allowed_origin("http://localhost:5173")
+                    .allowed_origin("http://127.0.0.1:5173")
                     .allowed_methods(vec!["GET", "POST", "PUT", "OPTIONS"])
                     .allowed_headers(
                         vec![
@@ -55,6 +57,7 @@ async fn main() -> std::io::Result<()> {
             .service(auth::get_me)
             .service(game_room::create_room)
             .service(game_room::join_room)
+            .service(game_room::join_room_by_id)
             .service(game_room::get_room)
             .service(game_room::get_completed_stories)
             .service(game_room::room_ws)
