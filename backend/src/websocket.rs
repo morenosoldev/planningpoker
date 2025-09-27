@@ -367,34 +367,39 @@ impl Handler<Connect> for GameServer {
 
         println!("Eksisterende deltagere i rum: {:?}", room.keys().collect::<Vec<_>>());
 
-        // Send beskeder om eksisterende deltagere til den nye bruger
+        // Check if user is already in the room (prevent duplicates)
+        if room.contains_key(&msg.user_id) {
+            println!("Bruger {} er allerede i rum {}, opdaterer forbindelse", msg.user_id, msg.room_id);
+            // Update existing connection
+            room.insert(msg.user_id.clone(), msg.addr.clone());
+            return;
+        }
+
+        // Send beskeder om eksisterende deltagere til den nye bruger (Note: we don't send username/profile_image here as we don't have that info stored)
         for existing_user_id in room.keys() {
-            if existing_user_id != &msg.user_id {
-                // Undgå at sende besked om sig selv
-                println!(
-                    "Sender besked om eksisterende bruger {} til ny bruger {}",
-                    existing_user_id,
-                    msg.user_id
-                );
-                let existing_user_msg = WebSocketMessage {
-                    message_type: "user_connected".to_string(),
-                    content: serde_json::json!({ "user_id": existing_user_id }),
-                    room_id: msg.room_id.clone(),
-                    user_id: existing_user_id.clone(),
-                };
-                println!(
-                    "Sender besked til ny bruger: {:?}",
-                    serde_json::to_string(&existing_user_msg)
-                );
-                msg.addr.do_send(existing_user_msg);
-            }
+            println!(
+                "Sender besked om eksisterende bruger {} til ny bruger {}",
+                existing_user_id,
+                msg.user_id
+            );
+            let existing_user_msg = WebSocketMessage {
+                message_type: "existing_user".to_string(),
+                content: serde_json::json!({ "user_id": existing_user_id }),
+                room_id: msg.room_id.clone(),
+                user_id: existing_user_id.clone(),
+            };
+            println!(
+                "Sender besked til ny bruger: {:?}",
+                serde_json::to_string(&existing_user_msg)
+            );
+            msg.addr.do_send(existing_user_msg);
         }
 
         // Tilføj den nye bruger til rummet
         room.insert(msg.user_id.clone(), msg.addr.clone());
         println!("Antal deltagere i rum {} efter tilføjelse: {}", msg.room_id, room.len());
 
-        // Send besked om ny deltager til alle andre i rummet
+        // Send besked om ny deltager til alle ANDRE i rummet (ikke til den nye bruger selv)
         let connect_msg = WebSocketMessage {
             message_type: "user_connected".to_string(),
             content: serde_json::json!({ 
@@ -403,10 +408,19 @@ impl Handler<Connect> for GameServer {
                 "profile_image": msg.profile_image
             }),
             room_id: msg.room_id.clone(),
-            user_id: msg.user_id,
+            user_id: msg.user_id.clone(),
         };
-        println!("Sender user_connected besked til alle andre i rummet");
-        self.send_message(&connect_msg, &msg.room_id);
+        
+        // Send to all OTHER users in the room (exclude the newly connected user)
+        if let Some(room_sessions) = self.sessions.get(&msg.room_id) {
+            println!("Sender user_connected besked til alle andre i rummet");
+            for (user_id, recipient) in room_sessions.iter() {
+                if user_id != &msg.user_id {
+                    println!("Sender besked til bruger {}", user_id);
+                    recipient.do_send(connect_msg.clone());
+                }
+            }
+        }
     }
 }
 

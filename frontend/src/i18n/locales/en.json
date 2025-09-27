@@ -2,13 +2,17 @@
   "landing": {
     "title": "Estimer",
     "signIn": "Sign In",
+    "dashboard": "Dashboard",
+    "logout": "Log Out",
     "hero": {
       "title": "Estimation Made",
-      "titleHighlight": "Easy",
-      "subtitle": "Boosting Productivity through Effective Planning. Simplify your estimation process, collaborate effectively with your team, and make better project decisions.",
+      "titleHighlight": "Simple",
+      "subtitle": "Boost Productivity Through Effective Planning. Streamline your estimation process, collaborate effectively with your team, and make better project decisions.",
       "startPlanning": "Start Planning Now",
+      "createRoom": "Create New Room",
       "noSignup": "No signup required",
-      "startFree": "Start for free"
+      "startFree": "Start free",
+      "welcomeBack": "Welcome back, {{username}}!"
     },
     "features": {
       "title": "Everything you need for effective planning",

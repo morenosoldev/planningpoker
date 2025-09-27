@@ -237,7 +237,10 @@ const GameRoom: React.FC = () => {
 
   const fetchRoom = useCallback(async () => {
     try {
-      console.log("Henter opdateret rumdata...");
+      console.log("=== FETCHING ROOM DATA ===");
+      console.log("Room ID:", roomId);
+      console.log("Token:", token ? "Present" : "Missing");
+      
       const response = await fetch(
         `${
           import.meta.env.VITE_API_BASE_URL || "http://localhost:8080"
@@ -254,11 +257,17 @@ const GameRoom: React.FC = () => {
       }
 
       const data = await response.json();
-      console.log("Opdateret rumdata modtaget:", data);
+      console.log("=== ROOM DATA RECEIVED ===");
+      console.log("Participants:", data.participants);
+      console.log("Participant count:", data.participants.length);
 
       // Opdater kun hvis der er ændringer i deltagerlisten
       setRoom((prev) => {
-        if (!prev) return data;
+        if (!prev) {
+          console.log("=== SETTING INITIAL ROOM DATA ===");
+          console.log("Initial participants:", data.participants);
+          return data;
+        }
 
         // Sammenlign deltagerlister
         const currentParticipants = new Set(
@@ -268,15 +277,20 @@ const GameRoom: React.FC = () => {
           data.participants.map((p: ParticipantInfo) => p.id)
         );
 
+        console.log("=== COMPARING PARTICIPANT LISTS ===");
+        console.log("Current participants:", Array.from(currentParticipants));
+        console.log("New participants:", Array.from(newParticipants));
+
         // Hvis listerne er identiske, behold den eksisterende state
         if (
           currentParticipants.size === newParticipants.size &&
           [...currentParticipants].every((p) => newParticipants.has(p))
         ) {
-          console.log("Ingen ændringer i deltagerlisten");
+          console.log("Ingen ændringer i deltagerlisten - beholder eksisterende data");
           return prev;
         }
 
+        console.log("=== UPDATING ROOM DATA DUE TO PARTICIPANT CHANGES ===");
         return data;
       });
     } catch (err) {
@@ -298,7 +312,7 @@ const GameRoom: React.FC = () => {
       console.log("roomId:", roomId);
       console.log("token:", token);
     }
-  }, [roomId, token, fetchRoom]);
+  }, [roomId, token]);
 
   useEffect(() => {
     // Opret WebSocket forbindelse
@@ -318,7 +332,10 @@ const GameRoom: React.FC = () => {
       try {
         const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
         const wsUrl = `${protocol}//localhost:8080/rooms/${roomId}/ws?token=${token}`;
-        console.log("Forsøger at oprette WebSocket forbindelse til:", wsUrl);
+        console.log("=== CREATING NEW WEBSOCKET CONNECTION ===");
+        console.log("URL:", wsUrl);
+        console.log("Room ID:", roomId);
+        console.log("User ID:", userId);
 
         const ws = new WebSocket(wsUrl);
         wsRef.current = ws;
@@ -340,14 +357,30 @@ const GameRoom: React.FC = () => {
                 console.log(`Bruger tilsluttet:`, message.content.user_id);
                 setRoom((prev) => {
                   if (!prev) return prev;
-                  if (
-                    prev.participants.some(
-                      (p) => p.id === message.content.user_id
-                    )
-                  ) {
-                    console.log("Bruger findes allerede i deltagerlisten");
-                    return prev;
+                  
+                  // Check if user already exists in participants list
+                  const userExists = prev.participants.some(
+                    (p) => p.id === message.content.user_id
+                  );
+                  
+                  if (userExists) {
+                    console.log("Bruger findes allerede i deltagerlisten, opdaterer info:", message.content.user_id);
+                    // Update existing user's info instead of adding duplicate
+                    return {
+                      ...prev,
+                      participants: prev.participants.map((p) =>
+                        p.id === message.content.user_id
+                          ? {
+                              id: message.content.user_id,
+                              username: message.content.username || p.username || "Unavailable",
+                              profile_image: message.content.profile_image || p.profile_image,
+                            }
+                          : p
+                      ),
+                    };
                   }
+                  
+                  console.log("Tilføjer ny bruger til deltagerlisten:", message.content.user_id);
                   return {
                     ...prev,
                     participants: [
@@ -373,6 +406,12 @@ const GameRoom: React.FC = () => {
                     ),
                   };
                 });
+                break;
+
+              case "existing_user":
+                console.log(`Eksisterende bruger informeret:`, message.content.user_id);
+                // This message type is just for informing the new user about existing users
+                // We don't need to add them to the participants list as they're already there from fetchRoom()
                 break;
 
               case "new_story":

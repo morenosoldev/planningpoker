@@ -2,13 +2,17 @@
   "landing": {
     "title": "Estimer",
     "signIn": "Log ind",
+    "dashboard": "Dashboard",
+    "logout": "Log ud",
     "hero": {
       "title": "Estimering Gjort",
       "titleHighlight": "Nemt",
       "subtitle": "Øg Produktivitet gennem Effektiv Planlægning. Forenkl din estimeringsproces, samarbejd effektivt med dit team, og træf bedre projektbeslutninger.",
       "startPlanning": "Start Planlægning Nu",
+      "createRoom": "Opret Nyt Rum",
       "noSignup": "Ingen tilmelding krævet",
-      "startFree": "Start gratis"
+      "startFree": "Start gratis",
+      "welcomeBack": "Velkommen tilbage, {{username}}!"
     },
     "features": {
       "title": "Alt du behøver for effektiv planlægning",

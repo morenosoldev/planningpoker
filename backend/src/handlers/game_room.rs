@@ -153,7 +153,7 @@ pub async fn join_room(
         .update_one(
             mongodb::bson::doc! { "invite_code": &join_data.invite_code },
             mongodb::bson::doc! {
-                "$push": { "participants": &user_id },
+                "$addToSet": { "participants": &user_id },
                 "$set": { "updated_at": now }
             },
             None
@@ -170,19 +170,19 @@ pub async fn join_room(
         );
     }
 
+    // Get updated participant list with proper info
+    let mut updated_participants = room.participants.clone();
+    updated_participants.push(user_id.clone());
+    let participants_info = get_participants_info(&db, &updated_participants).await.map_err(
+        ErrorInternalServerError
+    )?;
+
     let room_response = GameRoomResponse {
         id: room.id.unwrap().to_string(),
         name: room.name,
         invite_code: room.invite_code,
         admin_id: room.admin_id,
-        participants: room.participants
-            .iter()
-            .map(|id| ParticipantInfo {
-                id: id.to_string(),
-                username: "".to_string(),
-                profile_image: None,
-            })
-            .collect(),
+        participants: participants_info,
         current_story: room.current_story,
         completed_stories: room.completed_stories,
         stories: room.stories,
@@ -237,20 +237,17 @@ pub async fn join_room_by_id(
 
     // Check if user is already in the room
     if room.participants.contains(&user_id) {
-        // User is already in room, just return the room data
+        // User is already in room, just return the room data with proper participant info
+        let participants_info = get_participants_info(&db, &room.participants).await.map_err(
+            ErrorInternalServerError
+        )?;
+
         let room_response = GameRoomResponse {
             id: room.id.unwrap().to_string(),
             name: room.name,
             invite_code: room.invite_code,
             admin_id: room.admin_id,
-            participants: room.participants
-                .iter()
-                .map(|id| ParticipantInfo {
-                    id: id.to_string(),
-                    username: "".to_string(),
-                    profile_image: None,
-                })
-                .collect(),
+            participants: participants_info,
             current_story: room.current_story,
             completed_stories: room.completed_stories,
             stories: room.stories,
@@ -268,7 +265,7 @@ pub async fn join_room_by_id(
         .update_one(
             mongodb::bson::doc! { "_id": object_id },
             mongodb::bson::doc! {
-                "$push": { "participants": &user_id },
+                "$addToSet": { "participants": &user_id },
                 "$set": { "updated_at": now }
             },
             None
@@ -285,19 +282,19 @@ pub async fn join_room_by_id(
         );
     }
 
+    // Get updated participant list with proper info
+    let mut updated_participants = room.participants.clone();
+    updated_participants.push(user_id.clone());
+    let participants_info = get_participants_info(&db, &updated_participants).await.map_err(
+        ErrorInternalServerError
+    )?;
+
     let room_response = GameRoomResponse {
         id: room.id.unwrap().to_string(),
         name: room.name,
         invite_code: room.invite_code,
         admin_id: room.admin_id,
-        participants: room.participants
-            .iter()
-            .map(|id| ParticipantInfo {
-                id: id.to_string(),
-                username: "".to_string(),
-                profile_image: None,
-            })
-            .collect(),
+        participants: participants_info,
         current_story: room.current_story,
         completed_stories: room.completed_stories,
         stories: room.stories,

@@ -6,7 +6,7 @@ import LanguageSwitcher from "../components/LanguageSwitcher";
 
 export default function Landing() {
   const navigate = useNavigate();
-  const { user, token } = useAuth();
+  const { user, token, logout } = useAuth();
   const { t } = useTranslation();
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [roomName, setRoomName] = useState("");
@@ -75,12 +75,52 @@ export default function Landing() {
             </div>
             <div className="flex items-center space-x-4">
               <LanguageSwitcher />
-              <button
-                onClick={() => navigate("/auth")}
-                className="text-purple-600 hover:text-purple-700 font-medium transition-colors"
-              >
-                {t("landing.signIn")}
-              </button>
+              {user ? (
+                <div className="relative flex items-center space-x-3">
+                  <div className="flex items-center space-x-2">
+                    {user.profile_image ? (
+                      <img
+                        src={`${import.meta.env.VITE_API_BASE_URL || "http://localhost:8080"}${user.profile_image}`}
+                        alt={user.username}
+                        className="w-8 h-8 rounded-full border-2 border-purple-200 object-cover"
+                        onError={(e) => {
+                          // Fallback to initial letter if image fails to load
+                          const target = e.target as HTMLImageElement;
+                          target.style.display = 'none';
+                          const fallback = target.nextElementSibling as HTMLElement;
+                          if (fallback) fallback.style.display = 'flex';
+                        }}
+                      />
+                    ) : null}
+                    {!user.profile_image && (
+                      <div className="w-8 h-8 rounded-full bg-purple-600 flex items-center justify-center">
+                        <span className="text-white font-semibold text-sm">
+                          {user.username.charAt(0).toUpperCase()}
+                        </span>
+                      </div>
+                    )}
+                    <span className="text-gray-700 font-medium">
+                      {user.username}
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => {
+                      logout();
+                      navigate("/");
+                    }}
+                    className="px-3 py-1 bg-gray-100 text-gray-700 text-sm rounded-lg hover:bg-gray-200 transition-colors"
+                  >
+                    {t("landing.logout")}
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => navigate("/auth")}
+                  className="text-purple-600 hover:text-purple-700 font-medium transition-colors"
+                >
+                  {t("landing.signIn")}
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -105,38 +145,58 @@ export default function Landing() {
                 onClick={handleStartNow}
                 className="px-8 py-4 bg-gradient-to-r from-purple-600 to-blue-600 text-white text-lg font-semibold rounded-xl hover:from-purple-700 hover:to-blue-700 transform hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl"
               >
-                {t("landing.hero.startPlanning")}
+                {user ? t("landing.hero.createRoom") : t("landing.hero.startPlanning")}
               </button>
-              <div className="flex items-center space-x-6 text-sm text-gray-500">
-                <span className="flex items-center">
-                  <svg
-                    className="w-4 h-4 mr-2 text-green-500"
-                    fill="currentColor"
-                    viewBox="0 0 20 20"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                  {t("landing.hero.noSignup")}
-                </span>
-                <span className="flex items-center">
-                  <svg
-                    className="w-4 h-4 mr-2 text-green-500"
-                    fill="currentColor"
-                    viewBox="0 0 20 20"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                  {t("landing.hero.startFree")}
-                </span>
-              </div>
+              {!user && (
+                <div className="flex items-center space-x-6 text-sm text-gray-500">
+                  <span className="flex items-center">
+                    <svg
+                      className="w-4 h-4 mr-2 text-green-500"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                    {t("landing.hero.noSignup")}
+                  </span>
+                  <span className="flex items-center">
+                    <svg
+                      className="w-4 h-4 mr-2 text-green-500"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                    {t("landing.hero.startFree")}
+                  </span>
+                </div>
+              )}
+              {user && (
+                <div className="text-sm text-gray-600">
+                  <span className="flex items-center">
+                    <svg
+                      className="w-4 h-4 mr-2 text-green-500"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                    {t("landing.hero.welcomeBack", { username: user.username })}
+                  </span>
+                </div>
+              )}
             </div>
           </div>
         </div>
