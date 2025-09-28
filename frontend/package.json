@@ -13,6 +13,7 @@
     "@floating-ui/react": "^0.27.5",
     "@heroicons/react": "^2.2.0",
     "@tailwindcss/vite": "^4.0.9",
+    "@vercel/analytics": "^1.5.0",
     "axios": "^1.8.1",
     "dotenv": "^16.5.0",
     "emoji-picker-react": "^4.12.0",
