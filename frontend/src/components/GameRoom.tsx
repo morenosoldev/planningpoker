@@ -1085,7 +1085,7 @@ const GameRoom: React.FC = () => {
   return (
     <div className="h-screen bg-gray-100 flex flex-col">
       {/* Top bar med profilbillede upload - Full width */}
-      <div className="bg-white shadow-sm w-full">
+      <div className="bg-white  w-full">
         <div className="px-4 py-4 flex justify-between items-center">
           {/* Logo on the left */}
           <div className="flex items-center">
@@ -1660,7 +1660,7 @@ const GameRoom: React.FC = () => {
               {completedStories.map((story) => (
                 <div
                   key={story.id}
-                  className="p-3 bg-gradient-to-r from-green-50 to-blue-50 rounded-lg border-l-4 border-green-400 shadow-sm hover:shadow-md transition-shadow"
+                  className="p-3 bg-gradient-to-r from-green-50 to-blue-50 rounded-lg border-l-4 border-green-400  hover:shadow-md transition-shadow"
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
