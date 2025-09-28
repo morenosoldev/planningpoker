@@ -5,68 +5,68 @@
     "dashboard": "Dashboard",
     "logout": "Log ud",
     "hero": {
-      "title": "Estimering Gjort",
-      "titleHighlight": "Nemt",
-      "subtitle": "Øg Produktivitet gennem Effektiv Planlægning. Forenkl din estimeringsproces, samarbejd effektivt med dit team, og træf bedre projektbeslutninger.",
-      "startPlanning": "Start Planlægning Nu",
-      "createRoom": "Opret Nyt Rum",
-      "noSignup": "Ingen tilmelding krævet",
-      "startFree": "Start gratis",
+      "title": "Planning Poker",
+      "titleHighlight": "Online",
+      "subtitle": "Planning poker til agile teams der arbejder hjemmefra. Ingen kort, ingen login - bare opret et rum og send et link til dine kollegaer.",
+      "startPlanning": "Kom i gang",
+      "createRoom": "Opret rum",
+      "noSignup": "Intet login krævet",
+      "startFree": "Helt gratis",
       "welcomeBack": "Velkommen tilbage, {{username}}!"
     },
     "features": {
-      "title": "Alt du behøver for effektiv planlægning",
-      "subtitle": "Simple, kraftfulde værktøjer til at gøre din estimeringsproces smidig og samarbejdende",
+      "title": "Sådan fungerer det",
+      "subtitle": "Planning poker uden besværet",
       "quickSimple": {
-        "title": "Hurtig & Simpel",
-        "description": "Kom i gang på sekunder. Ingen kompleks opsætning, ingen lange tutorials. Opret et rum og begynd at estimere med det samme."
+        "title": "Intet Login",
+        "description": "Opret et rum på 10 sekunder. Send linket til dit team. Færdig. Ingen registrering, ingen tilmelding."
       },
       "teamCollaboration": {
-        "title": "Team Samarbejde",
-        "description": "Inviter hele dit team med et simpelt link. Alle kan deltage øjeblikkeligt og deltage fra hvor som helst."
+        "title": "Emoji Kamp",
+        "description": "Kast emojis til dine kollegaer mens I diskuterer stories. Fordi remote arbejde også skal være sjovt!"
       },
       "realTimeResults": {
-        "title": "Realtids Resultater",
-        "description": "Se stemmer afsløret samtidigt. Spor fremskridt og træf beslutninger sammen med øjeblikkelig feedback."
+        "title": "Se Alle Stemmer",
+        "description": "Skriv en kort titel og beskrivelse til jeres story, stem, og se resultatet med det samme."
       },
       "secureSessions": {
-        "title": "Sikre Sessioner",
-        "description": "Dine planlægningssessioner er private og sikre. Kun inviterede teammedlemmer kan deltage."
+        "title": "Gem Resultater",
+        "description": "Se hvordan I har stemt på forskellige stories. Alt bliver gemt så I kan gå tilbage og kigge."
       },
       "storyManagement": {
-        "title": "Historie Håndtering",
-        "description": "Opret, administrer og spor nemt dine brugerhistorier. Hold din planlægning organiseret og effektiv."
+        "title": "Simpelt Interface",
+        "description": "Ingen fancy features du ikke bruger. Bare det du skal bruge til planning poker."
       },
       "progressTracking": {
-        "title": "Fremskridt Sporing",
-        "description": "Overvåg dit teams estimeringsframskridt. Se afsluttede historier og spor din planlægningshastighed."
+        "title": "Helt Gratis",
+        "description": "Intet skal betales, ingen begrænsninger. Brug det så meget I vil."
       }
     },
     "howItWorks": {
-      "title": "Kom i Gang på 3 Nemme Trin",
-      "subtitle": "Start planlægning på minutter, ikke timer",
+      "title": "Sådan bruger du det",
+      "subtitle": "Det tager 30 sekunder",
       "step1": {
-        "title": "Opret et Rum",
-        "description": "Opret et planning poker rum til dit team med tilpassede indstillinger og personlige konfigurationer."
+        "title": "Opret Rum",
+        "description": "Klik på knappen og skriv hvad rummet skal hedde. Det er det."
       },
       "step2": {
-        "title": "Inviter Dit Team",
-        "description": "Del et simpelt link med dine teammedlemmer. De kan deltage øjeblikkeligt uden nogen tilmelding."
+        "title": "Send Link",
+        "description": "Kopier linket og send det til dit team i Slack, Teams eller hvor I nu snakker sammen."
       },
       "step3": {
-        "title": "Start Afstemning",
-        "description": "Opret brugerhistorier og begynd at estimere! Se resultater i realtid og træf informerede beslutninger sammen."
+        "title": "Stem På Stories",
+        "description": "Skriv hvad I skal stemme på, alle stemmer, og I kan se resultatet og gemme det."
       }
     },
     "cta": {
-      "title": "Klar til at starte planlægning?",
-      "subtitle": "Tilslut dig tusindvis af teams, der stoler på vores platform til deres agile planlægningssessioner. Begynd at estimere mere effektivt i dag.",
-      "startPlanning": "Start Planlægning Nu"
+      "title": "Prøv det nu",
+      "subtitle": "Det tager 30 sekunder at komme i gang. Intet login, intet bøvl, bare planning poker der virker.",
+      "startPlanning": "Opret rum nu"
     },
     "footer": {
-      "title": "Planning Poker",
-      "subtitle": "Forenkl din estimeringsproces og øg dit teams produktivitet med vores intuitive planning poker platform.",
-      "copyright": "© 2025 Planning Poker. Lavet med ❤️ til agile teams overalt."
+      "title": "Estimer",
+      "subtitle": "Planning poker til teams der arbejder hjemmefra. Simpelt, gratis og uden bøvl.",
+      "copyright": "© 2025 Estimer. Lavet til agile teams der gider ikke rode med kort."
     }
   },
   "createRoom": {
@@ -87,8 +87,11 @@
     "password": "Adgangskode",
     "login": "Log ind",
     "register": "Opret konto",
+    "createAccount": "Opret konto",
     "switchToRegister": "Har du ikke en konto? Opret en her",
     "switchToLogin": "Har du allerede en konto? Log ind her",
+    "noAccountSignUp": "Har du ikke en konto? Opret en her",
+    "haveAccountLogin": "Har du allerede en konto? Log ind her",
     "usernameRequired": "Brugernavn er påkrævet",
     "error": "Der skete en fejl",
     "usernamePlaceholder": "Dit brugernavn",

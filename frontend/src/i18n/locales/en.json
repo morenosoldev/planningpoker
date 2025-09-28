@@ -5,68 +5,68 @@
     "dashboard": "Dashboard",
     "logout": "Log Out",
     "hero": {
-      "title": "Estimation Made",
-      "titleHighlight": "Simple",
-      "subtitle": "Boost Productivity Through Effective Planning. Streamline your estimation process, collaborate effectively with your team, and make better project decisions.",
-      "startPlanning": "Start Planning Now",
-      "createRoom": "Create New Room",
-      "noSignup": "No signup required",
-      "startFree": "Start free",
+      "title": "Planning Poker",
+      "titleHighlight": "Online",
+      "subtitle": "Planning poker for agile teams working from home. No cards, no login - just create a room and send a link to your colleagues.",
+      "startPlanning": "Get started",
+      "createRoom": "Create room",
+      "noSignup": "No login required",
+      "startFree": "Completely free",
       "welcomeBack": "Welcome back, {{username}}!"
     },
     "features": {
-      "title": "Everything you need for effective planning",
-      "subtitle": "Simple, powerful tools to make your estimation process smooth and collaborative",
+      "title": "How it works",
+      "subtitle": "Planning poker without the hassle",
       "quickSimple": {
-        "title": "Quick & Simple",
-        "description": "Get started in seconds. No complex setup, no lengthy tutorials. Create a room and start estimating immediately."
+        "title": "No Login",
+        "description": "Create a room in 10 seconds. Send the link to your team. Done. No registration, no signup."
       },
       "teamCollaboration": {
-        "title": "Team Collaboration",
-        "description": "Invite your entire team with a simple link. Everyone can join instantly and participate from anywhere."
+        "title": "Emoji Battle",
+        "description": "Throw emojis at your colleagues while discussing stories. Because remote work should be fun too!"
       },
       "realTimeResults": {
-        "title": "Real-time Results",
-        "description": "See votes revealed simultaneously. Track progress and make decisions together with instant feedback."
+        "title": "See All Votes",
+        "description": "Write a short title and description for your story, vote, and see the result instantly."
       },
       "secureSessions": {
-        "title": "Secure Sessions",
-        "description": "Your planning sessions are private and secure. Only invited team members can join and participate."
+        "title": "Save Results",
+        "description": "See how you voted on different stories. Everything gets saved so you can go back and look."
       },
       "storyManagement": {
-        "title": "Story Management",
-        "description": "Easily create, manage and track your user stories. Keep your planning organized and efficient."
+        "title": "Simple Interface",
+        "description": "No fancy features you don't use. Just what you need for planning poker."
       },
       "progressTracking": {
-        "title": "Progress Tracking",
-        "description": "Monitor your team's estimation progress. See completed stories and track your planning velocity."
+        "title": "Completely Free",
+        "description": "Nothing to pay, no limitations. Use it as much as you want."
       }
     },
     "howItWorks": {
-      "title": "Get Started In 3 Easy Steps",
-      "subtitle": "Start planning in minutes, not hours",
+      "title": "How to use it",
+      "subtitle": "Takes 30 seconds",
       "step1": {
-        "title": "Create A Room",
-        "description": "Create a planning poker room for your team with custom settings and personalized configurations."
+        "title": "Create Room",
+        "description": "Click the button and write what the room should be called. That's it."
       },
       "step2": {
-        "title": "Invite Your Team",
-        "description": "Share a simple link with your team members. They can join instantly without any signup required."
+        "title": "Send Link",
+        "description": "Copy the link and send it to your team in Slack, Teams or wherever you chat."
       },
       "step3": {
-        "title": "Start Voting",
-        "description": "Create user stories and start estimating! See results in real-time and make informed decisions together."
+        "title": "Vote On Stories",
+        "description": "Write what you're voting on, everyone votes, and you can see the result and save it."
       }
     },
     "cta": {
-      "title": "Ready to start planning?",
-      "subtitle": "Join thousands of teams who trust our platform for their agile planning sessions. Start estimating more effectively today.",
-      "startPlanning": "Start Planning Now"
+      "title": "Try it now",
+      "subtitle": "Takes 30 seconds to get started. No login, no hassle, just planning poker that works.",
+      "startPlanning": "Create room now"
     },
     "footer": {
-      "title": "Planning Poker",
-      "subtitle": "Simplify your estimation process and boost your team's productivity with our intuitive planning poker platform.",
-      "copyright": "© 2025 Planning Poker. Made with ❤️ for agile teams everywhere."
+      "title": "Estimer",
+      "subtitle": "Planning poker for teams working from home. Simple, free and no hassle.",
+      "copyright": "© 2025 Estimer. Made for agile teams who can't be bothered with cards."
     }
   },
   "createRoom": {
@@ -87,8 +87,11 @@
     "password": "Password",
     "login": "Sign In",
     "register": "Create Account",
+    "createAccount": "Create Account",
     "switchToRegister": "Don't have an account? Create one here",
     "switchToLogin": "Already have an account? Sign in here",
+    "noAccountSignUp": "Don't have an account? Sign up",
+    "haveAccountLogin": "Already have an account? Sign in",
     "usernameRequired": "Username is required",
     "error": "An error occurred",
     "usernamePlaceholder": "Your username",

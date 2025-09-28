@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../contexts/AuthContext";
 import LanguageSwitcher from "../components/LanguageSwitcher";
+import estimerLogo from "../assets/estimer.png";
 
 export default function Landing() {
   const navigate = useNavigate();
@@ -67,13 +68,12 @@ export default function Landing() {
       <header className="bg-white/80 backdrop-blur-sm border-b border-gray-200 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex justify-between items-center">
-            <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-gradient-to-br from-purple-600 to-blue-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-sm">🎯</span>
-              </div>
-              <h1 className="text-xl font-bold text-gray-900">
-                {t("landing.title")}
-              </h1>
+            <div className="flex items-center">
+              <img
+                src={estimerLogo}
+                alt="Estimer Logo"
+                className="h-14 object-contain"
+              />
             </div>
             <div className="flex items-center space-x-4">
               <LanguageSwitcher />

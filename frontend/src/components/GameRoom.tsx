@@ -5,6 +5,7 @@ import ProfileImageUpload from "./ProfileImageUpload";
 import EmojiPicker from "emoji-picker-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useFloating, offset, shift, flip, arrow } from "@floating-ui/react";
+import estimerLogo from "../assets/estimer.png";
 
 interface InviteButtonProps {
   roomId: string | undefined;
@@ -1312,9 +1313,16 @@ const GameRoom: React.FC = () => {
                   )}
                   {!isVotingOpen && !showResults && (
                     <div>
-                      <h3 className="font-bold text-xl text-purple-600 mb-2">
-                        Estimer
-                      </h3>
+                      <div className="flex items-center space-x-2 mb-2">
+                        <img
+                          src={estimerLogo}
+                          alt="Estimer Logo"
+                          className="w-6 h-6 object-contain"
+                        />
+                        <h3 className="font-bold text-xl text-purple-600">
+                          Estimer
+                        </h3>
+                      </div>
                       <p className="text-sm text-gray-600">
                         {room?.current_story
                           ? "Ready to vote"

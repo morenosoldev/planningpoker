@@ -3,6 +3,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import LanguageSwitcher from "../components/LanguageSwitcher";
+import estimerLogo from "../assets/estimer.png";
 
 interface AuthFormData {
   email: string;
@@ -50,8 +51,13 @@ export default function Auth() {
 
       <div className="flex-1 flex items-center justify-center">
         <div className="max-w-md w-full space-y-8 p-8 bg-white rounded-xl shadow-lg">
-          <div>
-            <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+          <div className="text-center">
+            <img
+              src={estimerLogo}
+              alt="Estimer Logo"
+              className="mx-auto w-24 h-24 object-contain mb-6"
+            />
+            <h2 className="text-center text-3xl font-extrabold text-gray-900">
               {isLogin ? t("auth.loginTitle") : t("auth.registerTitle")}
             </h2>
           </div>
@@ -148,7 +154,7 @@ export default function Auth() {
             <div>
               <button
                 type="submit"
-                className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-primary hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
+                className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
               >
                 {isLogin ? t("auth.login") : t("auth.createAccount")}
               </button>
@@ -158,7 +164,7 @@ export default function Auth() {
           <div className="text-center">
             <button
               type="button"
-              className="text-sm text-primary hover:text-primary/90"
+              className="text-sm text-blue-600 hover:text-blue-800"
               onClick={() => setIsLogin(!isLogin)}
             >
               {isLogin ? t("auth.noAccountSignUp") : t("auth.haveAccountLogin")}
