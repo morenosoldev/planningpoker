@@ -3,6 +3,15 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
+pub struct Participant {
+    pub id: String,
+    pub username: String,
+    pub profile_image: Option<String>,
+    pub is_guest: bool,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
 pub struct Vote {
     pub user_id: String,
     pub username: String,
@@ -68,6 +77,12 @@ pub struct CreateRoomDto {
 #[derive(Debug, Deserialize)]
 pub struct JoinRoomDto {
     pub invite_code: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct GuestCreateRoomDto {
+    pub room_name: String,
+    pub username: String,
 }
 
 #[derive(Debug, Serialize)]

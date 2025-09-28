@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef, useCallback } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useLocation } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import ProfileImageUpload from "./ProfileImageUpload";
 import EmojiPicker from "emoji-picker-react";
@@ -136,11 +136,20 @@ interface EmojiReaction {
 
 const GameRoom: React.FC = () => {
   const { roomId } = useParams<{ roomId: string }>();
-  const { token, user, logout } = useAuth();
-  const userId = user?.id || null;
+  const location = useLocation();
+  const { token, user, guestUser, isGuest, logout } = useAuth();
+  const userId = user?.id || guestUser?.id || null;
+  const currentUser = user || guestUser;
   const [room, setRoom] = useState<GameRoomData | null>(null);
   const [error, setError] = useState<string>("");
   const [isConnected, setIsConnected] = useState(false);
+  
+  // Handle initial room data for guest users from navigation state
+  useEffect(() => {
+    if (guestUser && location.state?.room && !room) {
+      setRoom(location.state.room);
+    }
+  }, [guestUser, location.state, room]);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const hasVoted = !!room?.current_story?.votes.some(
     (v) => v.user_id === userId
@@ -229,7 +238,7 @@ const GameRoom: React.FC = () => {
             (type === "complete" ? 0.3 : type === "reveal" ? 0.2 : 0.1)
         );
       } catch (error) {
-        console.log("Audio not supported or failed:", error);
+        // Audio not supported or failed
       }
     },
     [soundEnabled]
@@ -237,10 +246,6 @@ const GameRoom: React.FC = () => {
 
   const fetchRoom = useCallback(async () => {
     try {
-      console.log("=== FETCHING ROOM DATA ===");
-      console.log("Room ID:", roomId);
-      console.log("Token:", token ? "Present" : "Missing");
-
       const response = await fetch(
         `${
           import.meta.env.VITE_API_BASE_URL || "http://localhost:8080"
@@ -257,15 +262,10 @@ const GameRoom: React.FC = () => {
       }
 
       const data = await response.json();
-      console.log("=== ROOM DATA RECEIVED ===");
-      console.log("Participants:", data.participants);
-      console.log("Participant count:", data.participants.length);
 
       // Opdater kun hvis der er ændringer i deltagerlisten
       setRoom((prev) => {
         if (!prev) {
-          console.log("=== SETTING INITIAL ROOM DATA ===");
-          console.log("Initial participants:", data.participants);
           return data;
         }
 
@@ -277,57 +277,34 @@ const GameRoom: React.FC = () => {
           data.participants.map((p: ParticipantInfo) => p.id)
         );
 
-        console.log("=== COMPARING PARTICIPANT LISTS ===");
-        console.log("Current participants:", Array.from(currentParticipants));
-        console.log("New participants:", Array.from(newParticipants));
-
         // Hvis listerne er identiske, behold den eksisterende state
         if (
           currentParticipants.size === newParticipants.size &&
           [...currentParticipants].every((p) => newParticipants.has(p))
         ) {
-          console.log(
-            "Ingen ændringer i deltagerlisten - beholder eksisterende data"
-          );
           return prev;
         }
 
-        console.log("=== UPDATING ROOM DATA DUE TO PARTICIPANT CHANGES ===");
         return data;
       });
     } catch (err) {
-      console.error("Fejl ved hentning af opdateret rumdata:", err);
+      // Silent error - room data update failed
     }
   }, [roomId, token]);
 
   useEffect(() => {
-    // Hent rum data
-    console.log("=== Auth Status ===");
-    console.log("Token fra useAuth:", token);
-    console.log("Er token gyldig?", !!token);
-    console.log("user", userId);
-
-    if (roomId && token) {
+    if (roomId && token && !guestUser && !room) {
       fetchRoom();
-    } else {
-      console.error("=== Mangler data for at hente rum ===");
-      console.log("roomId:", roomId);
-      console.log("token:", token);
     }
-  }, [roomId, token]);
+  }, [roomId, token, guestUser, room, fetchRoom]);
 
   useEffect(() => {
-    // Opret WebSocket forbindelse
-    console.log("WebSocket useEffect kører");
-
     const connectWebSocket = () => {
-      if (!roomId || !token) {
-        console.error("Mangler roomId eller token");
+      if (!roomId || (!token && !guestUser)) {
         return;
       }
 
       if (wsRef.current?.readyState === WebSocket.OPEN) {
-        console.log("WebSocket forbindelse er allerede åben");
         return;
       }
 
@@ -337,31 +314,33 @@ const GameRoom: React.FC = () => {
           import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
         // Convert HTTP(S) URL to WebSocket URL
         const wsBaseUrl = apiBaseUrl.replace(/^https?:\/\//, `${protocol}//`);
-        const wsUrl = `${wsBaseUrl}/rooms/${roomId}/ws?token=${token}`;
-        console.log("=== CREATING NEW WEBSOCKET CONNECTION ===");
+        
+        // Use different endpoints for regular users vs guests
+        let wsUrl;
+        if (guestUser) {
+          wsUrl = `${wsBaseUrl}/rooms/${roomId}/guest-ws/${guestUser.id}`;
+          console.log("=== CREATING GUEST WEBSOCKET CONNECTION ===");
+        } else {
+          wsUrl = `${wsBaseUrl}/rooms/${roomId}/ws?token=${token}`;
+          console.log("=== CREATING REGULAR WEBSOCKET CONNECTION ===");
+        }
+        
         console.log("API Base URL:", apiBaseUrl);
         console.log("WebSocket URL:", wsUrl);
-        console.log("Room ID:", roomId);
-        console.log("User ID:", userId);
-
         const ws = new WebSocket(wsUrl);
         wsRef.current = ws;
 
         ws.onopen = () => {
-          console.log("WebSocket forbindelse ÅBNET");
           setIsConnected(true);
           setError("");
         };
 
         ws.onmessage = (event) => {
-          console.log("WebSocket besked modtaget:", event.data);
           try {
             const message = JSON.parse(event.data);
-            console.log("Parset besked:", message);
 
             switch (message.message_type) {
               case "user_connected":
-                console.log(`Bruger tilsluttet:`, message.content.user_id);
                 setRoom((prev) => {
                   if (!prev) return prev;
 
@@ -371,10 +350,6 @@ const GameRoom: React.FC = () => {
                   );
 
                   if (userExists) {
-                    console.log(
-                      "Bruger findes allerede i deltagerlisten, opdaterer info:",
-                      message.content.user_id
-                    );
                     // Update existing user's info instead of adding duplicate
                     return {
                       ...prev,
@@ -395,10 +370,6 @@ const GameRoom: React.FC = () => {
                     };
                   }
 
-                  console.log(
-                    "Tilføjer ny bruger til deltagerlisten:",
-                    message.content.user_id
-                  );
                   return {
                     ...prev,
                     participants: [
@@ -427,16 +398,11 @@ const GameRoom: React.FC = () => {
                 break;
 
               case "existing_user":
-                console.log(
-                  `Eksisterende bruger informeret:`,
-                  message.content.user_id
-                );
                 // This message type is just for informing the new user about existing users
                 // We don't need to add them to the participants list as they're already there from fetchRoom()
                 break;
 
               case "new_story":
-                console.log("Ny historie modtaget:", message.content);
                 setRoom((prev) => {
                   if (!prev) return prev;
                   const newStory = {
@@ -457,13 +423,11 @@ const GameRoom: React.FC = () => {
                 break;
 
               case "start_voting":
-                console.log("Afstemning startet");
                 setIsVotingOpen(true);
                 setShowResults(false);
                 break;
 
               case "vote":
-                console.log("Ny stemme modtaget:", message.content);
                 handleVote(message);
                 playSound("vote");
                 break;
@@ -586,19 +550,17 @@ const GameRoom: React.FC = () => {
       }
     };
 
-    if (roomId && token) {
-      console.log("Starter WebSocket forbindelse...");
+    if (roomId && ((token && !guestUser) || guestUser)) {
       connectWebSocket();
     }
 
     return () => {
-      console.log("Oprydning af WebSocket forbindelse");
       if (wsRef.current) {
         wsRef.current.close();
         wsRef.current = null;
       }
     };
-  }, [roomId, token]);
+  }, [roomId, token, guestUser]);
 
   // Tjek om alle har stemt
   const checkAllVoted = useCallback(() => {
@@ -769,7 +731,6 @@ const GameRoom: React.FC = () => {
   };
 
   const isAdmin = userId === room?.admin_id;
-  console.log("Admin check:", { userId, adminId: room?.admin_id, isAdmin });
 
   const startNewStory = () => {
     if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {

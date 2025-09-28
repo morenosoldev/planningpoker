@@ -57,4 +57,18 @@ pub async fn validate_token(req: HttpRequest) -> Result<String, Error> {
 
     println!("Token valideret succesfuldt. User ID: {}", token_data.claims.sub);
     Ok(token_data.claims.sub)
+}
+
+// Optional token validation for guest users
+pub async fn validate_optional_token(req: HttpRequest) -> Result<Option<String>, Error> {
+    let auth_header = req.headers().get(AUTHORIZATION);
+    
+    if auth_header.is_none() {
+        return Ok(None); // No token present, allow guest access
+    }
+    
+    match validate_token(req).await {
+        Ok(user_id) => Ok(Some(user_id)),
+        Err(_) => Ok(None), // Invalid token, treat as guest
+    }
 } 

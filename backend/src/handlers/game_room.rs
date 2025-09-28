@@ -10,10 +10,11 @@ use actix_web::{
 };
 use actix_web_actors::ws;
 use mongodb::Database;
-use crate::models::game_room::{ GameRoom, CreateRoomDto, JoinRoomDto, Story, Vote, CompletedStory };
-use crate::models::user::User;
-use crate::middleware::auth::validate_token;
+use crate::models::game_room::{ GameRoom, CreateRoomDto, JoinRoomDto, GuestCreateRoomDto, Story, Vote, CompletedStory };
+use crate::models::user::{User, GuestUser, GuestJoinDto};
+use crate::middleware::auth::{validate_token, validate_optional_token};
 use crate::websocket::{ WebSocketSession, GameServer, GameMessage, GAME_SERVER };
+use actix::Addr;
 use jsonwebtoken::{ decode, Validation, Algorithm, DecodingKey };
 use crate::middleware::auth::Claims;
 use rand::Rng;
@@ -114,6 +115,10 @@ pub async fn join_room(
     db: web::Data<Database>,
     join_data: web::Json<JoinRoomDto>
 ) -> Result<HttpResponse> {
+    println!("=== REGULAR JOIN ROOM ENDPOINT HIT ===");
+    println!("Request path: {:?}", req.path());
+    println!("Request method: {:?}", req.method());
+    
     let user_id = validate_token(req.clone()).await?;
 
     let collection = db.collection::<GameRoom>("game_rooms");
@@ -310,20 +315,29 @@ async fn get_participants_info(
     participant_ids: &[String]
 ) -> Result<Vec<ParticipantInfo>, Box<dyn std::error::Error>> {
     let users_collection = db.collection::<User>("users");
+    let guests_collection = db.collection::<GuestUser>("guest_users");
     let mut participants_info = Vec::new();
 
     for id in participant_ids {
         if let Ok(object_id) = mongodb::bson::oid::ObjectId::parse_str(id) {
-            if
-                let Ok(Some(user)) = users_collection.find_one(
-                    doc! { "_id": object_id },
-                    None
-                ).await
-            {
+            // Try to find regular user first
+            if let Ok(Some(user)) = users_collection.find_one(
+                doc! { "_id": object_id },
+                None
+            ).await {
                 participants_info.push(ParticipantInfo {
                     id: id.clone(),
                     username: user.username,
                     profile_image: user.profile_image,
+                });
+            } else if let Ok(Some(guest)) = guests_collection.find_one(
+                doc! { "_id": object_id },
+                None
+            ).await {
+                participants_info.push(ParticipantInfo {
+                    id: id.clone(),
+                    username: guest.username,
+                    profile_image: guest.profile_image,
                 });
             }
         }
@@ -785,3 +799,268 @@ pub async fn room_ws(
     // Opgrader HTTP forbindelsen til WebSocket
     ws::start(ws, &req, stream)
 }
+
+#[get("/rooms/{room_id}/guest-ws/{guest_id}")]
+pub async fn guest_room_ws(
+    req: HttpRequest,
+    stream: web::Payload,
+    path: web::Path<(String, String)>,
+    srv: web::Data<Addr<GameServer>>,
+    db: web::Data<Database>
+) -> Result<HttpResponse> {
+    let (room_id, guest_id) = path.into_inner();
+    
+    println!("Guest WebSocket forbindelse for rum {} med guest ID: {}", room_id, guest_id);
+
+    // Hent guest info
+    let guests_collection = db.collection::<GuestUser>("guest_users");
+    let guest_object_id = mongodb::bson::oid::ObjectId
+        ::parse_str(&guest_id)
+        .map_err(|_| ErrorInternalServerError("Ugyldigt guest ID"))?;
+
+    let guest = guests_collection
+        .find_one(doc! { "_id": guest_object_id }, None).await
+        .map_err(ErrorInternalServerError)?
+        .ok_or_else(|| ErrorInternalServerError("Guest ikke fundet"))?;
+
+    // Opret en ny WebSocket session
+    let ws = WebSocketSession::new(
+        room_id.clone(),
+        guest_id.clone(),
+        guest.username,
+        guest.profile_image,
+        srv.get_ref().clone(),
+        db.get_ref().clone()
+    );
+
+    println!("Guest WebSocket session oprettet, opgraderer forbindelse...");
+
+    // Opgrader HTTP forbindelsen til WebSocket
+    ws::start(ws, &req, stream)
+}
+
+#[get("/rooms/{room_id}/info")]
+pub async fn get_room_info(
+    db: web::Data<Database>,
+    room_id: web::Path<String>
+) -> Result<HttpResponse> {
+    let collection = db.collection::<GameRoom>("game_rooms");
+
+    let object_id = match mongodb::bson::oid::ObjectId::parse_str(room_id.as_str()) {
+        Ok(id) => id,
+        Err(_) => {
+            return Ok(
+                HttpResponse::BadRequest().json(
+                    serde_json::json!({
+                        "message": "Ugyldigt rum ID"
+                    })
+                )
+            );
+        }
+    };
+
+    let room = match collection.find_one(doc! { "_id": object_id }, None).await {
+        Ok(Some(room)) => room,
+        Ok(None) => {
+            return Ok(
+                HttpResponse::NotFound().json(
+                    serde_json::json!({
+                        "message": "Spilrum ikke fundet"
+                    })
+                )
+            );
+        }
+        Err(_) => {
+            return Ok(
+                HttpResponse::InternalServerError().json(
+                    serde_json::json!({
+                        "message": "Database fejl"
+                    })
+                )
+            );
+        }
+    };
+
+    // Return basic room info that doesn't require authentication
+    Ok(HttpResponse::Ok().json(serde_json::json!({
+        "id": room.id.unwrap().to_string(),
+        "name": room.name,
+        "invite_code": room.invite_code,
+        "participant_count": room.participants.len()
+    })))
+}
+
+// Guest user endpoints
+
+#[post("/guest/join")]
+pub async fn guest_join_room(
+    db: web::Data<Database>,
+    join_data: web::Json<GuestJoinDto>
+) -> Result<HttpResponse> {
+    println!("=== GUEST JOIN ROOM ENDPOINT HIT ===");
+    println!("Username: {}", join_data.username);
+    println!("Room code: {}", join_data.room_code);
+    
+    let collection = db.collection::<GameRoom>("game_rooms");
+    let guests_collection = db.collection::<GuestUser>("guest_users");
+
+    // Find the room by invite code
+    let room = match
+        collection
+            .find_one(mongodb::bson::doc! { "invite_code": &join_data.room_code }, None).await
+            .map_err(ErrorInternalServerError)?
+    {
+        Some(room) => room,
+        None => {
+            return Ok(
+                HttpResponse::NotFound().json(
+                    serde_json::json!({
+                        "message": "Spilrum ikke fundet"
+                    })
+                )
+            );
+        }
+    };
+
+    // Create guest user
+    let guest_user = GuestUser {
+        id: None, // Will be set by MongoDB
+        username: join_data.username.clone(),
+        profile_image: None,
+        is_guest: true,
+    };
+
+    // Insert guest user
+    let guest_insert_result = guests_collection
+        .insert_one(&guest_user, None).await
+        .map_err(ErrorInternalServerError)?;
+
+    let guest_user_id = guest_insert_result.inserted_id.as_object_id().unwrap().to_string();
+
+    // For now, allow multiple guests with the same name
+    // In production, you might want to check for duplicates
+
+    // Add guest to participants
+    let now = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs() as i64;
+
+    let update_result = collection
+        .update_one(
+            mongodb::bson::doc! { "invite_code": &join_data.room_code },
+            mongodb::bson::doc! {
+                "$addToSet": { "participants": &guest_user_id },
+                "$set": { "updated_at": now }
+            },
+            None
+        ).await
+        .map_err(ErrorInternalServerError)?;
+
+    if update_result.modified_count == 0 {
+        return Ok(
+            HttpResponse::InternalServerError().json(
+                serde_json::json!({
+                    "message": "Kunne ikke tilføje dig til spilrummet"
+                })
+            )
+        );
+    }
+
+    // Get updated participant list with proper info
+    let mut updated_participants = room.participants.clone();
+    updated_participants.push(guest_user_id.clone());
+    let participants_info = get_participants_info(&db, &updated_participants).await.map_err(
+        ErrorInternalServerError
+    )?;
+
+    let room_response = GameRoomResponse {
+        id: room.id.unwrap().to_string(),
+        name: room.name,
+        invite_code: room.invite_code,
+        admin_id: room.admin_id,
+        participants: participants_info,
+        current_story: room.current_story,
+        completed_stories: room.completed_stories,
+        stories: room.stories,
+        created_at: room.created_at,
+        updated_at: now,
+    };
+
+    // Return response with guest session info
+    Ok(HttpResponse::Ok().json(serde_json::json!({
+        "room": room_response,
+        "guest_id": guest_user_id,
+        "is_guest": true
+    })))
+}
+
+#[post("/guest/create")]
+pub async fn guest_create_room(
+    db: web::Data<Database>,
+    room_data: web::Json<GuestCreateRoomDto>
+) -> Result<HttpResponse> {
+    let collection = db.collection::<GameRoom>("game_rooms");
+    let guests_collection = db.collection::<GuestUser>("guest_users");
+
+    // Create guest user first
+    let guest_user = GuestUser {
+        id: None, // Will be set by MongoDB
+        username: room_data.username.clone(),
+        profile_image: None,
+        is_guest: true,
+    };
+
+    // Insert guest user
+    let guest_insert_result = guests_collection
+        .insert_one(&guest_user, None).await
+        .map_err(ErrorInternalServerError)?;
+
+    let guest_user_id = guest_insert_result.inserted_id.as_object_id().unwrap().to_string();
+
+    // Create the room
+    let now = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs() as i64;
+
+    let new_room = GameRoom {
+        id: None,
+        name: room_data.room_name.clone(),
+        invite_code: generate_invite_code(),
+        admin_id: guest_user_id.clone(), // Guest user is the admin
+        participants: vec![guest_user_id.clone()],
+        current_story: None,
+        completed_stories: Vec::new(),
+        stories: Vec::new(),
+        created_at: now,
+        updated_at: now,
+    };
+
+    let insert_result = collection
+        .insert_one(&new_room, None).await
+        .map_err(ErrorInternalServerError)?;
+
+    let room_id = insert_result.inserted_id.as_object_id().unwrap().to_string();
+
+    // Get participant info
+    let participants_info = get_participants_info(&db, &new_room.participants).await.map_err(
+        ErrorInternalServerError
+    )?;
+
+    let room_response = GameRoomResponse {
+        id: room_id.clone(),
+        name: new_room.name,
+        invite_code: new_room.invite_code,
+        admin_id: new_room.admin_id,
+        participants: participants_info,
+        current_story: new_room.current_story,
+        completed_stories: new_room.completed_stories,
+        stories: new_room.stories,
+        created_at: new_room.created_at,
+        updated_at: now,
+    };
+
+    // Return response with guest session info
+    Ok(HttpResponse::Created().json(serde_json::json!({
+        "room": room_response,
+        "guest_id": guest_user_id,
+        "is_guest": true
+    })))
+}
+
+

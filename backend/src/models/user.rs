@@ -38,4 +38,19 @@ pub struct UserResponse {
     pub email: String,
     pub username: String,
     pub profile_image: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct GuestUser {
+    #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
+    pub id: Option<mongodb::bson::oid::ObjectId>,
+    pub username: String,
+    pub profile_image: Option<String>,
+    pub is_guest: bool,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct GuestJoinDto {
+    pub username: String,
+    pub room_code: String,
 } 

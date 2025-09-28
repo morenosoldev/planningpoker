@@ -13,11 +13,13 @@ export default function Landing() {
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
+  const [showGuestOptions, setShowGuestOptions] = useState(false);
+
   const handleStartNow = () => {
     if (user) {
       setShowCreateModal(true);
     } else {
-      navigate("/auth");
+      setShowGuestOptions(true);
     }
   };
 
@@ -563,6 +565,75 @@ export default function Landing() {
               <p className="text-sm text-gray-600 text-center">
                 {t("createRoom.subtitle")}
               </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Guest Options Modal */}
+      {showGuestOptions && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-8 max-w-md w-full mx-4 shadow-2xl">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-bold text-gray-900">
+                Kom i gang som gæst
+              </h2>
+              <button
+                onClick={() => setShowGuestOptions(false)}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <svg
+                  className="w-6 h-6"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+            </div>
+
+            <p className="text-gray-600 mb-6 text-center">
+              Du kan bruge Planning Poker uden at oprette en konto. Vælg hvad du vil gøre:
+            </p>
+
+            <div className="space-y-4">
+              <button
+                onClick={() => navigate('/rooms/guest/create')}
+                className="w-full px-6 py-4 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg hover:from-purple-700 hover:to-blue-700 transition-all duration-200 font-medium flex items-center justify-center"
+              >
+                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                </svg>
+                Opret nyt rum
+              </button>
+
+              <button
+                onClick={() => navigate('/rooms/guest/join')}
+                className="w-full px-6 py-4 border-2 border-purple-600 text-purple-600 rounded-lg hover:bg-purple-50 transition-all duration-200 font-medium flex items-center justify-center"
+              >
+                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
+                </svg>
+                Tilslut til rum
+              </button>
+            </div>
+
+            <div className="mt-6 pt-6 border-t border-gray-200">
+              <p className="text-sm text-gray-600 text-center mb-4">
+                Eller opret en konto for flere funktioner:
+              </p>
+              <button
+                onClick={() => navigate('/auth')}
+                className="w-full px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+              >
+                Log ind / Registrer
+              </button>
             </div>
           </div>
         </div>

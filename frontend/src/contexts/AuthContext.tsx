@@ -20,8 +20,16 @@ interface User {
   profile_image?: string;
 }
 
+interface GuestUser {
+  id: string;
+  username: string;
+  profile_image?: string;
+  is_guest: boolean;
+}
+
 interface AuthContextType {
   user: User | null;
+  guestUser: GuestUser | null;
   token: string | null;
   userId: string | null;
   login: (email: string, password: string) => Promise<void>;
@@ -30,9 +38,13 @@ interface AuthContextType {
     password: string,
     username: string
   ) => Promise<void>;
+  joinAsGuest: (username: string, roomCode: string) => Promise<{ room: any; guest_id: string }>;
+  createRoomAsGuest: (username: string, roomName: string) => Promise<{ room: any; guest_id: string }>;
   setAuthToken: (token: string, user: User) => void;
+  setGuestUser: (guestUser: GuestUser) => void;
   logout: () => void;
   isAuthenticated: boolean;
+  isGuest: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -41,28 +53,46 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
   children,
 }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [guestUser, setGuestUser] = useState<GuestUser | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isGuest, setIsGuest] = useState(false);
 
   // Hydrate from localStorage
   useEffect(() => {
     const session = localStorage.getItem("auth_session");
-    if (!session) return;
+    const guestSession = localStorage.getItem("guest_session");
+    
+    if (session) {
+      try {
+        const parsed = JSON.parse(session);
+        const isExpired = parsed?.expiry && parsed.expiry < Date.now();
 
-    try {
-      const parsed = JSON.parse(session);
-      const isExpired = parsed?.expiry && parsed.expiry < Date.now();
-
-      if (!isExpired && parsed?.token && parsed?.user) {
-        setToken(parsed.token);
-        setUser(parsed.user);
-        setIsAuthenticated(true);
-      } else {
-        // If expired or invalid, clear it
-        localStorage.removeItem("auth_session");
+        if (!isExpired && parsed?.token && parsed?.user) {
+          setToken(parsed.token);
+          setUser(parsed.user);
+          setIsAuthenticated(true);
+        } else {
+          // If expired or invalid, clear it
+          localStorage.removeItem("auth_session");
+        }
+      } catch (e) {
+        console.error("Fejl ved parsing af session:", e);
       }
-    } catch (e) {
-      console.error("Fejl ved parsing af session:", e);
+    } else if (guestSession) {
+      try {
+        const parsed = JSON.parse(guestSession);
+        const isExpired = parsed?.expiry && parsed.expiry < Date.now();
+
+        if (!isExpired && parsed?.guest) {
+          setGuestUser(parsed.guest);
+          setIsGuest(true);
+        } else {
+          localStorage.removeItem("guest_session");
+        }
+      } catch (e) {
+        console.error("Fejl ved parsing af guest session:", e);
+      }
     }
   }, []);
 
@@ -131,22 +161,117 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     setIsAuthenticated(true);
   };
 
+  const joinAsGuest = async (username: string, roomCode: string): Promise<{ room: any; guest_id: string }> => {
+    try {
+      // Create a new axios instance without default Authorization header
+      const guestAxios = axios.create({
+        baseURL: axios.defaults.baseURL,
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        }
+      });
+      
+      const response = await guestAxios.post("/guest/join", {
+        username,
+        room_code: roomCode,
+      });
+
+      const { room, guest_id } = response.data;
+      
+      const guestUserData: GuestUser = {
+        id: guest_id,
+        username,
+        is_guest: true,
+      };
+
+      // Store guest session
+      const expiry = new Date().getTime() + 24 * 60 * 60 * 1000; // 24 hours
+      const session = JSON.stringify({ guest: guestUserData, expiry });
+      localStorage.setItem("guest_session", session);
+      
+      setGuestUser(guestUserData);
+      setIsGuest(true);
+
+      return { room, guest_id };
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response) {
+        throw new Error(error.response.data.message || "Guest join fejlede");
+      }
+      throw new Error("Der opstod en fejl under guest join");
+    }
+  };
+
+  const createRoomAsGuest = async (username: string, roomName: string): Promise<{ room: any; guest_id: string }> => {
+    try {
+      // Create a new axios instance without default Authorization header
+      const guestAxios = axios.create({
+        baseURL: axios.defaults.baseURL,
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        }
+      });
+      
+      const response = await guestAxios.post("/guest/create", {
+        username,
+        room_name: roomName,
+      });
+
+      const { room, guest_id } = response.data;
+      
+      const guestUserData: GuestUser = {
+        id: guest_id,
+        username,
+        is_guest: true,
+      };
+
+      // Store guest session
+      const expiry = new Date().getTime() + 24 * 60 * 60 * 1000; // 24 hours
+      const session = JSON.stringify({ guest: guestUserData, expiry });
+      localStorage.setItem("guest_session", session);
+      
+      setGuestUser(guestUserData);
+      setIsGuest(true);
+
+      return { room, guest_id };
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response) {
+        throw new Error(error.response.data.message || "Guest room creation fejlede");
+      }
+      throw new Error("Der opstod en fejl under guest room creation");
+    }
+  };
+
+  const setGuestUserData = (guest: GuestUser) => {
+    setGuestUser(guest);
+    setIsGuest(true);
+  };
+
   const logout = () => {
     localStorage.removeItem("auth_session");
+    localStorage.removeItem("guest_session");
     setUser(null);
+    setGuestUser(null);
     setToken(null);
     setIsAuthenticated(false);
+    setIsGuest(false);
   };
 
   const value = {
     user,
+    guestUser,
     token,
-    userId: user?.id || null,
+    userId: user?.id || guestUser?.id || null,
     login,
     register,
+    joinAsGuest,
+    createRoomAsGuest,
     setAuthToken,
+    setGuestUser: setGuestUserData,
     logout,
     isAuthenticated,
+    isGuest,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

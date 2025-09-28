@@ -6,7 +6,11 @@ import Auth from "./pages/Auth";
 import GameRoom from "./components/GameRoom";
 import CreateRoom from "./components/CreateRoom";
 import JoinRoom from "./components/JoinRoom";
+import RoomInvite from "./components/RoomInvite";
+import GuestCreateRoom from "./components/GuestCreateRoom";
+import GuestJoinByCode from "./components/GuestJoinByCode";
 import PrivateRoute from "./components/PrivateRoute";
+import AuthenticatedOrGuestRoute from "./components/AuthenticatedOrGuestRoute";
 
 const App: React.FC = () => {
   return (
@@ -35,18 +39,26 @@ const App: React.FC = () => {
             <Route
               path="/rooms/:roomId"
               element={
-                <PrivateRoute>
+                <AuthenticatedOrGuestRoute>
                   <GameRoom />
-                </PrivateRoute>
+                </AuthenticatedOrGuestRoute>
               }
             />
             <Route
               path="/join/:roomId"
-              element={
-                <PrivateRoute>
-                  <JoinRoom />
-                </PrivateRoute>
-              }
+              element={<RoomInvite />}
+            />
+            <Route
+              path="/rooms/guest/create"
+              element={<GuestCreateRoom />}
+            />
+            <Route
+              path="/rooms/guest/join"
+              element={<GuestJoinByCode />}
+            />
+            <Route
+              path="/rooms/guest/join"
+              element={<GuestJoinByCode />}
             />
           </Routes>
         </div>
