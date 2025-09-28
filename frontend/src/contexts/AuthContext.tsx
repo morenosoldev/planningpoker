@@ -269,7 +269,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
       try {
         const parsed = JSON.parse(guestSession);
         const isExpired = parsed?.expiry && parsed.expiry < Date.now();
-        
+
         if (!isExpired && parsed?.room) {
           return parsed.room;
         }

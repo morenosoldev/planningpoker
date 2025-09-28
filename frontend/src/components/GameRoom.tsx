@@ -338,7 +338,7 @@ const GameRoom: React.FC = () => {
       if (connectionAttempts === 0) {
         setError("");
       }
-      
+
       setIsConnecting(true);
 
       try {
@@ -352,10 +352,18 @@ const GameRoom: React.FC = () => {
         let wsUrl;
         if (guestUser) {
           wsUrl = `${wsBaseUrl}/rooms/${roomId}/guest-ws/${guestUser.id}`;
-          console.log(`=== CREATING GUEST WEBSOCKET CONNECTION (attempt ${connectionAttempts + 1}) ===`);
+          console.log(
+            `=== CREATING GUEST WEBSOCKET CONNECTION (attempt ${
+              connectionAttempts + 1
+            }) ===`
+          );
         } else {
           wsUrl = `${wsBaseUrl}/rooms/${roomId}/ws?token=${token}`;
-          console.log(`=== CREATING REGULAR WEBSOCKET CONNECTION (attempt ${connectionAttempts + 1}) ===`);
+          console.log(
+            `=== CREATING REGULAR WEBSOCKET CONNECTION (attempt ${
+              connectionAttempts + 1
+            }) ===`
+          );
         }
 
         console.log("API Base URL:", apiBaseUrl);
@@ -587,19 +595,28 @@ const GameRoom: React.FC = () => {
 
           // Implement exponential backoff retry logic
           if (!event.wasClean && connectionAttempts < 5) {
-            const delay = Math.min(1000 * Math.pow(2, connectionAttempts), 10000); // Max 10 seconds
-            console.log(`Forbindelse mistet, forsøger at genoprette om ${delay}ms (attempt ${connectionAttempts + 1}/5)...`);
-            setConnectionAttempts(prev => prev + 1);
+            const delay = Math.min(
+              1000 * Math.pow(2, connectionAttempts),
+              10000
+            ); // Max 10 seconds
+            console.log(
+              `Forbindelse mistet, forsøger at genoprette om ${delay}ms (attempt ${
+                connectionAttempts + 1
+              }/5)...`
+            );
+            setConnectionAttempts((prev) => prev + 1);
             setTimeout(connectWebSocket, delay);
           } else if (connectionAttempts >= 5) {
-            setError("Kunne ikke oprette forbindelse til rummet. Prøv at genindlæse siden.");
+            setError(
+              "Kunne ikke oprette forbindelse til rummet. Prøv at genindlæse siden."
+            );
           }
         };
 
         ws.onerror = (error) => {
           console.error("WebSocket FEJL:", error);
           setIsConnecting(false);
-          
+
           // Don't show error immediately on first attempt - this might be the race condition
           if (connectionAttempts > 0) {
             setError("Fejl i WebSocket forbindelsen");
@@ -1049,11 +1066,15 @@ const GameRoom: React.FC = () => {
         <div className="bg-white rounded-lg shadow-lg p-8 flex flex-col items-center">
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500 mb-4"></div>
           <p className="text-gray-600 text-lg font-medium">
-            {!room ? t('common.loading') : connectionAttempts > 0 ? `${t('common.connecting')} (${connectionAttempts + 1}/5)` : t('common.connecting')}
+            {!room
+              ? t("common.loading")
+              : connectionAttempts > 0
+              ? `${t("common.connecting")} (${connectionAttempts + 1}/5)`
+              : t("common.connecting")}
           </p>
           {connectionAttempts > 2 && (
             <p className="text-gray-500 text-sm mt-2">
-              {t('gameRoom.connectionTakingLonger')}
+              {t("gameRoom.connectionTakingLonger")}
             </p>
           )}
         </div>
