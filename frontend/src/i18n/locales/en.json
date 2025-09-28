@@ -105,6 +105,7 @@
     "copy": "Copy",
     "copied": "Copied!",
     "close": "Close",
+    "sound": "Sound",
     "waiting": "Waiting",
     "voted": "Voted",
     "currentStory": "Current Story",
@@ -120,10 +121,15 @@
     "logOut": "Log Out",
     "admin": "Admin",
     "points": "points",
-    "voted_count": "{{count}} of {{total}} voted"
+    "results": "Results",
+    "votingCompleted": "Voting completed",
+    "waitingForStory": "Waiting for story",
+    "voted_count": "{{count}} of {{total}} voted",
+    "connectionTakingLonger": "This is taking longer than expected..."
   },
   "common": {
     "loading": "Loading...",
+    "connecting": "Connecting...",
     "error": "Error",
     "success": "Success",
     "cancel": "Cancel",

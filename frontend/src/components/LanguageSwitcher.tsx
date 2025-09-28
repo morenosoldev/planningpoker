@@ -22,14 +22,12 @@ const LanguageSwitcher = () => {
     <div className="relative">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center space-x-2 px-3 py-2 rounded-lg bg-white/80 border border-gray-200 hover:bg-white hover:shadow-sm transition-all duration-200"
+        className="px-4 py-2 border border-gray-300 text-purple-600 rounded-lg hover:bg-gray-50 transition-colors flex items-center gap-2 text-sm font-medium"
       >
         <span className="text-lg">{currentLanguage.flag}</span>
-        <span className="text-sm font-medium text-gray-700">
-          {currentLanguage.name}
-        </span>
+        <span>{currentLanguage.name}</span>
         <svg
-          className={`w-4 h-4 text-gray-500 transition-transform duration-200 ${
+          className={`w-4 h-4 transition-transform duration-200 ${
             isOpen ? "rotate-180" : ""
           }`}
           fill="none"

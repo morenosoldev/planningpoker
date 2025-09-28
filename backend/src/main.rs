@@ -105,6 +105,7 @@ async fn main() -> std::io::Result<()> {
             .service(game_room::room_ws)
             .service(game_room::guest_room_ws)
             .service(handlers::user::upload_profile_image)
+            .service(handlers::user::upload_guest_profile_image)
             .service(actix_files::Files::new("/uploads", "uploads").show_files_listing())
     })
         .bind("0.0.0.0:8080")?

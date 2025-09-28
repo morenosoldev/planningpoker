@@ -72,7 +72,7 @@ export default function Landing() {
               <img
                 src={estimerLogo}
                 alt="Estimer Logo"
-                className="h-14 object-contain"
+                className="h-10 md:h-14 object-contain"
               />
             </div>
             <div className="flex items-center space-x-4">
@@ -122,7 +122,7 @@ export default function Landing() {
               ) : (
                 <button
                   onClick={() => navigate("/auth")}
-                  className="text-purple-600 hover:text-purple-700 font-medium transition-colors"
+                  className="hidden md:block text-purple-600 hover:text-purple-700 font-medium transition-colors"
                 >
                   {t("landing.signIn")}
                 </button>

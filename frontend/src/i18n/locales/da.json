@@ -105,6 +105,7 @@
     "copy": "Kopier",
     "copied": "Kopieret!",
     "close": "Luk",
+    "sound": "Lyd",
     "waiting": "Venter",
     "voted": "Stemt",
     "currentStory": "Nuværende Historie",
@@ -120,10 +121,15 @@
     "logOut": "Log ud",
     "admin": "Admin",
     "points": "point",
-    "voted_count": "{{count}} af {{total}} har stemt"
+    "results": "Resultater",
+    "votingCompleted": "Afstemning afsluttet",
+    "waitingForStory": "Venter på historie",
+    "voted_count": "{{count}} af {{total}} har stemt",
+    "connectionTakingLonger": "Dette tager længere tid end forventet..."
   },
   "common": {
     "loading": "Indlæser...",
+    "connecting": "Tilslutter...",
     "error": "Fejl",
     "success": "Succes",
     "cancel": "Annuller",

@@ -55,11 +55,8 @@ export default function Auth() {
             <img
               src={estimerLogo}
               alt="Estimer Logo"
-              className="mx-auto w-24 h-24 object-contain mb-6"
+              className="mx-auto h-24 object-contain mb-6"
             />
-            <h2 className="text-center text-3xl font-extrabold text-gray-900">
-              {isLogin ? t("auth.loginTitle") : t("auth.registerTitle")}
-            </h2>
           </div>
 
           {error && (

@@ -48,6 +48,7 @@ interface AuthContextType {
   ) => Promise<{ room: any; guest_id: string }>;
   setAuthToken: (token: string, user: User) => void;
   setGuestUser: (guestUser: GuestUser) => void;
+  getGuestRoomData: () => any | null;
   logout: () => void;
   isAuthenticated: boolean;
   isGuest: boolean;
@@ -194,9 +195,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
         is_guest: true,
       };
 
-      // Store guest session
+      // Store guest session with room information
       const expiry = new Date().getTime() + 24 * 60 * 60 * 1000; // 24 hours
-      const session = JSON.stringify({ guest: guestUserData, expiry });
+      const session = JSON.stringify({ guest: guestUserData, room, expiry });
       localStorage.setItem("guest_session", session);
 
       setGuestUser(guestUserData);
@@ -238,9 +239,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
         is_guest: true,
       };
 
-      // Store guest session
+      // Store guest session with room information
       const expiry = new Date().getTime() + 24 * 60 * 60 * 1000; // 24 hours
-      const session = JSON.stringify({ guest: guestUserData, expiry });
+      const session = JSON.stringify({ guest: guestUserData, room, expiry });
       localStorage.setItem("guest_session", session);
 
       setGuestUser(guestUserData);
@@ -260,6 +261,23 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
   const setGuestUserData = (guest: GuestUser) => {
     setGuestUser(guest);
     setIsGuest(true);
+  };
+
+  const getGuestRoomData = () => {
+    const guestSession = localStorage.getItem("guest_session");
+    if (guestSession) {
+      try {
+        const parsed = JSON.parse(guestSession);
+        const isExpired = parsed?.expiry && parsed.expiry < Date.now();
+        
+        if (!isExpired && parsed?.room) {
+          return parsed.room;
+        }
+      } catch (e) {
+        console.error("Fejl ved parsing af guest room data:", e);
+      }
+    }
+    return null;
   };
 
   const logout = () => {
@@ -283,6 +301,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     createRoomAsGuest,
     setAuthToken,
     setGuestUser: setGuestUserData,
+    getGuestRoomData,
     logout,
     isAuthenticated,
     isGuest,

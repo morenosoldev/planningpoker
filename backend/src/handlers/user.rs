@@ -1,5 +1,5 @@
-use actix_web::{post, web, HttpResponse, Result, error::ResponseError, Error as ActixError};
-use actix_multipart::{Multipart, MultipartError};
+use actix_web::{ post, web, HttpResponse, Result, error::ResponseError, Error as ActixError };
+use actix_multipart::{ Multipart, MultipartError };
 use futures_util::TryStreamExt;
 use uuid::Uuid;
 use std::io::Write;
@@ -38,9 +38,11 @@ impl fmt::Display for UserError {
 
 impl ResponseError for UserError {
     fn error_response(&self) -> HttpResponse {
-        HttpResponse::InternalServerError().json(serde_json::json!({
+        HttpResponse::InternalServerError().json(
+            serde_json::json!({
             "error": self.to_string()
-        }))
+        })
+        )
     }
 }
 
@@ -90,60 +92,133 @@ impl From<BlockingError> for UserError {
 pub async fn upload_profile_image(
     req: actix_web::HttpRequest,
     mut payload: Multipart,
-    db: web::Data<Database>,
+    db: web::Data<Database>
 ) -> Result<HttpResponse, UserError> {
     // Valider bruger
     let user_id = validate_token(req).await?;
-    
+
     // Opret uploads mappe hvis den ikke findes
     std::fs::create_dir_all("uploads")?;
-    
+
     // Håndter fil upload
     while let Some(mut field) = payload.try_next().await? {
         // Generer unikt filnavn
         let file_id = Uuid::new_v4();
         let file_path = format!("uploads/{}.jpg", file_id);
-        
+
         // Opret fil
         let file_path_clone = file_path.clone();
-        let mut f = web::block(move || std::fs::File::create(&file_path_clone))
-            .await
+        let mut f = web
+            ::block(move || std::fs::File::create(&file_path_clone)).await
             .map_err(|e: BlockingError| UserError::BlockingError)?
             .map_err(UserError::IoError)?;
-        
+
         // Skriv data til fil
         while let Some(chunk) = field.try_next().await? {
             let chunk_data = chunk.to_vec();
-            f = web::block(move || f.write_all(&chunk_data).map(|_| f))
-                .await
+            f = web
+                ::block(move || f.write_all(&chunk_data).map(|_| f)).await
                 .map_err(|e: BlockingError| UserError::BlockingError)?
                 .map_err(UserError::IoError)?;
         }
-        
+
         // Optimer billede
         let img = image::open(&file_path)?;
         let resized = img.resize(200, 200, image::imageops::FilterType::Lanczos3);
         resized.save(&file_path)?;
-        
+
         // Opdater bruger i database
         let users_collection = db.collection::<User>("users");
         let object_id = mongodb::bson::oid::ObjectId::parse_str(&user_id)?;
-        
-        users_collection
-            .update_one(
-                doc! { "_id": object_id },
-                doc! { "$set": { "profile_image": format!("/uploads/{}.jpg", file_id) } },
-                None,
-            )
-            .await?;
-        
-        return Ok(HttpResponse::Ok().json(serde_json::json!({
+
+        users_collection.update_one(
+            doc! { "_id": object_id },
+            doc! { "$set": { "profile_image": format!("/uploads/{}.jpg", file_id) } },
+            None
+        ).await?;
+
+        return Ok(
+            HttpResponse::Ok().json(
+                serde_json::json!({
             "message": "Profilbillede opdateret",
             "profile_image": format!("/uploads/{}.jpg", file_id)
-        })));
+        })
+            )
+        );
     }
-    
-    Ok(HttpResponse::BadRequest().json(serde_json::json!({
+
+    Ok(
+        HttpResponse::BadRequest().json(
+            serde_json::json!({
         "message": "Ingen fil modtaget"
-    })))
-} 
+    })
+        )
+    )
+}
+
+#[post("/guest/profile-image/{guest_id}")]
+pub async fn upload_guest_profile_image(
+    path: web::Path<String>,
+    mut payload: Multipart,
+    db: web::Data<Database>
+) -> Result<HttpResponse, UserError> {
+    let guest_id = path.into_inner();
+
+    // Opret uploads mappe hvis den ikke findes
+    std::fs::create_dir_all("uploads")?;
+
+    // Håndter fil upload
+    while let Some(mut field) = payload.try_next().await? {
+        // Generer unikt filnavn
+        let file_id = Uuid::new_v4();
+        let file_path = format!("uploads/{}.jpg", file_id);
+
+        // Opret fil
+        let file_path_clone = file_path.clone();
+        let mut f = web
+            ::block(move || std::fs::File::create(&file_path_clone)).await
+            .map_err(|e: BlockingError| UserError::BlockingError)?
+            .map_err(UserError::IoError)?;
+
+        // Skriv data til fil
+        while let Some(chunk) = field.try_next().await? {
+            let chunk_data = chunk.to_vec();
+            f = web
+                ::block(move || f.write_all(&chunk_data).map(|_| f)).await
+                .map_err(|e: BlockingError| UserError::BlockingError)?
+                .map_err(UserError::IoError)?;
+        }
+
+        // Optimer billede
+        let img = image::open(&file_path)?;
+        let resized = img.resize(200, 200, image::imageops::FilterType::Lanczos3);
+        resized.save(&file_path)?;
+
+        // Update guest user profile image in database
+        let guests_collection = db.collection::<crate::models::user::GuestUser>("guest_users");
+        let object_id = mongodb::bson::oid::ObjectId::parse_str(&guest_id)?;
+
+        guests_collection.update_one(
+            doc! { "_id": object_id },
+            doc! { "$set": { "profile_image": format!("/uploads/{}.jpg", file_id) } },
+            None
+        ).await?;
+
+        return Ok(
+            HttpResponse::Ok().json(
+                serde_json::json!({
+            "message": "Guest profilbillede uploaded",
+            "profile_image": format!("/uploads/{}.jpg", file_id)
+        })
+            )
+        );
+    }
+
+    Ok(
+        HttpResponse::BadRequest().json(
+            serde_json::json!({
+        "message": "Ingen fil modtaget"
+    })
+        )
+    )
+}

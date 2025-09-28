@@ -1,7 +1,9 @@
 import React, { useEffect, useState, useRef, useCallback } from "react";
 import { useParams, useLocation } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "../contexts/AuthContext";
 import ProfileImageUpload from "./ProfileImageUpload";
+import LanguageSwitcher from "./LanguageSwitcher";
 import EmojiPicker from "emoji-picker-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useFloating, offset, shift, flip, arrow } from "@floating-ui/react";
@@ -9,9 +11,10 @@ import estimerLogo from "../assets/estimer.png";
 
 interface InviteButtonProps {
   roomId: string | undefined;
+  t: (key: string) => string;
 }
 
-const InviteButton: React.FC<InviteButtonProps> = ({ roomId }) => {
+const InviteButton: React.FC<InviteButtonProps> = ({ roomId, t }) => {
   const [showModal, setShowModal] = useState(false);
   const [copied, setCopied] = useState(false);
 
@@ -31,21 +34,32 @@ const InviteButton: React.FC<InviteButtonProps> = ({ roomId }) => {
     <>
       <button
         onClick={() => setShowModal(true)}
-        className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center gap-2 text-sm font-medium"
+        className="px-4 py-2 border border-gray-300 text-purple-600 rounded-lg hover:bg-gray-50 transition-colors flex items-center gap-2 text-sm font-medium"
       >
-        <span>👥</span>
-        Invite others
+        <svg
+          className="w-4 h-4"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"
+          />
+        </svg>
+        {t("gameRoom.inviteOthers")}
       </button>
 
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
             <h3 className="text-lg font-semibold mb-4">
-              Invite others to join
+              {t("gameRoom.inviteTitle")}
             </h3>
             <p className="text-gray-600 mb-4 text-sm">
-              Share this link with others to invite them to this Planning Poker
-              session:
+              {t("gameRoom.inviteSubtitle")}
             </p>
 
             <div className="flex items-center gap-2 mb-4">
@@ -60,10 +74,10 @@ const InviteButton: React.FC<InviteButtonProps> = ({ roomId }) => {
                 className={`px-4 py-2 rounded transition-colors text-sm font-medium ${
                   copied
                     ? "bg-green-500 text-white"
-                    : "bg-purple-600 text-white hover:bg-purple-700"
+                    : "border border-gray-300 text-purple-600 hover:bg-gray-50"
                 }`}
               >
-                {copied ? "Copied!" : "Copy"}
+                {copied ? t("gameRoom.copied") : t("gameRoom.copy")}
               </button>
             </div>
 
@@ -72,7 +86,7 @@ const InviteButton: React.FC<InviteButtonProps> = ({ roomId }) => {
                 onClick={() => setShowModal(false)}
                 className="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400 transition-colors text-sm"
               >
-                Close
+                {t("gameRoom.close")}
               </button>
             </div>
           </div>
@@ -136,20 +150,32 @@ interface EmojiReaction {
 }
 
 const GameRoom: React.FC = () => {
+  const { t } = useTranslation();
   const { roomId } = useParams<{ roomId: string }>();
   const location = useLocation();
-  const { token, user, guestUser, logout } = useAuth();
+  const { token, user, guestUser, getGuestRoomData, logout } = useAuth();
   const userId = user?.id || guestUser?.id || null;
   const [room, setRoom] = useState<GameRoomData | null>(null);
   const [error, setError] = useState<string>("");
   const [isConnected, setIsConnected] = useState(false);
+  const [isConnecting, setIsConnecting] = useState(false);
+  const [connectionAttempts, setConnectionAttempts] = useState(0);
 
-  // Handle initial room data for guest users from navigation state
+  // Handle initial room data for guest users from navigation state or localStorage
   useEffect(() => {
-    if (guestUser && location.state?.room && !room) {
-      setRoom(location.state.room);
+    if (guestUser && !room) {
+      // First try to get room data from navigation state (fresh join)
+      if (location.state?.room) {
+        setRoom(location.state.room);
+      } else {
+        // If no navigation state, try to get room data from localStorage (page reload)
+        const storedRoomData = getGuestRoomData();
+        if (storedRoomData) {
+          setRoom(storedRoomData);
+        }
+      }
     }
-  }, [guestUser, location.state, room]);
+  }, [guestUser, location.state, room, getGuestRoomData]);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const hasVoted = !!room?.current_story?.votes.some(
     (v) => v.user_id === userId
@@ -308,6 +334,13 @@ const GameRoom: React.FC = () => {
         return;
       }
 
+      // Clear any existing error when starting a new connection attempt
+      if (connectionAttempts === 0) {
+        setError("");
+      }
+      
+      setIsConnecting(true);
+
       try {
         const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
         const apiBaseUrl =
@@ -319,10 +352,10 @@ const GameRoom: React.FC = () => {
         let wsUrl;
         if (guestUser) {
           wsUrl = `${wsBaseUrl}/rooms/${roomId}/guest-ws/${guestUser.id}`;
-          console.log("=== CREATING GUEST WEBSOCKET CONNECTION ===");
+          console.log(`=== CREATING GUEST WEBSOCKET CONNECTION (attempt ${connectionAttempts + 1}) ===`);
         } else {
           wsUrl = `${wsBaseUrl}/rooms/${roomId}/ws?token=${token}`;
-          console.log("=== CREATING REGULAR WEBSOCKET CONNECTION ===");
+          console.log(`=== CREATING REGULAR WEBSOCKET CONNECTION (attempt ${connectionAttempts + 1}) ===`);
         }
 
         console.log("API Base URL:", apiBaseUrl);
@@ -331,7 +364,10 @@ const GameRoom: React.FC = () => {
         wsRef.current = ws;
 
         ws.onopen = () => {
+          console.log("WebSocket forbindelse SUCCESS!");
           setIsConnected(true);
+          setIsConnecting(false);
+          setConnectionAttempts(0);
           setError("");
         };
 
@@ -516,6 +552,21 @@ const GameRoom: React.FC = () => {
                 console.log("=== COMPLETED STORY HÅNDTERING AFSLUTTET ===");
                 break;
 
+              case "profile_image_update":
+                console.log("Profile image update received:", message.content);
+                setRoom((prev) => {
+                  if (!prev) return prev;
+                  return {
+                    ...prev,
+                    participants: prev.participants.map((p) =>
+                      p.id === message.content.user_id
+                        ? { ...p, profile_image: message.content.profile_image }
+                        : p
+                    ),
+                  };
+                });
+                break;
+
               case "emoji_reaction":
                 handleEmojiReaction(message.content);
                 break;
@@ -529,32 +580,49 @@ const GameRoom: React.FC = () => {
         };
 
         ws.onclose = (event) => {
-          console.log("WebSocket forbindelse LUKKET");
+          console.log("WebSocket forbindelse LUKKET", event.code, event.reason);
           setIsConnected(false);
+          setIsConnecting(false);
           wsRef.current = null;
 
-          // Forsøg at genoprette forbindelse hvis den ikke blev lukket rent
-          if (!event.wasClean) {
-            console.log("Forbindelse mistet, forsøger at genoprette...");
-            setTimeout(connectWebSocket, 2000);
+          // Implement exponential backoff retry logic
+          if (!event.wasClean && connectionAttempts < 5) {
+            const delay = Math.min(1000 * Math.pow(2, connectionAttempts), 10000); // Max 10 seconds
+            console.log(`Forbindelse mistet, forsøger at genoprette om ${delay}ms (attempt ${connectionAttempts + 1}/5)...`);
+            setConnectionAttempts(prev => prev + 1);
+            setTimeout(connectWebSocket, delay);
+          } else if (connectionAttempts >= 5) {
+            setError("Kunne ikke oprette forbindelse til rummet. Prøv at genindlæse siden.");
           }
         };
 
         ws.onerror = (error) => {
           console.error("WebSocket FEJL:", error);
-          setError("Fejl i WebSocket forbindelsen");
+          setIsConnecting(false);
+          
+          // Don't show error immediately on first attempt - this might be the race condition
+          if (connectionAttempts > 0) {
+            setError("Fejl i WebSocket forbindelsen");
+          }
         };
       } catch (error) {
         console.error("Fejl ved oprettelse af WebSocket:", error);
+        setIsConnecting(false);
         setError("Kunne ikke oprette WebSocket forbindelse");
       }
     };
 
+    let timeoutId: NodeJS.Timeout | undefined;
     if (roomId && ((token && !guestUser) || guestUser)) {
-      connectWebSocket();
+      // Add a small delay for room creation to ensure the room is fully initialized on the backend
+      const delay = connectionAttempts === 0 ? 500 : 0;
+      timeoutId = setTimeout(connectWebSocket, delay);
     }
 
     return () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
       if (wsRef.current) {
         wsRef.current.close();
         wsRef.current = null;
@@ -796,6 +864,18 @@ const GameRoom: React.FC = () => {
     }
   }, [roomId, token, fetchCompletedStories]);
 
+  // Helper function to get the correct image source
+  const getImageSrc = (
+    profileImage: string | undefined
+  ): string | undefined => {
+    if (!profileImage) return undefined;
+
+    // All images are now server-hosted files, add base URL
+    return `${
+      import.meta.env.VITE_API_BASE_URL || "http://localhost:8080"
+    }${profileImage}`;
+  };
+
   const handleProfileImageUpdate = (newImageUrl: string) => {
     // Opdater brugerens profilbillede i deltagerlisten
     setRoom((prev) => {
@@ -807,6 +887,25 @@ const GameRoom: React.FC = () => {
         ),
       };
     });
+
+    // Send profile image update to all other users via WebSocket
+    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+      const userInfo = room?.participants.find((p) => p.id === userId);
+      if (userInfo) {
+        wsRef.current.send(
+          JSON.stringify({
+            message_type: "profile_image_update",
+            content: {
+              user_id: userId,
+              username: userInfo.username,
+              profile_image: newImageUrl,
+            },
+            room_id: roomId,
+            user_id: userId,
+          })
+        );
+      }
+    }
   };
 
   // Håndter emoji-klik på en brugers profilbillede
@@ -944,47 +1043,97 @@ const GameRoom: React.FC = () => {
     return <div className="text-red-600 p-4">{error}</div>;
   }
 
-  if (!room) {
+  if (!room || isConnecting) {
     return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+      <div className="flex items-center justify-center h-screen bg-gray-100">
+        <div className="bg-white rounded-lg shadow-lg p-8 flex flex-col items-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500 mb-4"></div>
+          <p className="text-gray-600 text-lg font-medium">
+            {!room ? t('common.loading') : connectionAttempts > 0 ? `${t('common.connecting')} (${connectionAttempts + 1}/5)` : t('common.connecting')}
+          </p>
+          {connectionAttempts > 2 && (
+            <p className="text-gray-500 text-sm mt-2">
+              {t('gameRoom.connectionTakingLonger')}
+            </p>
+          )}
+        </div>
       </div>
     );
   }
 
   return (
     <div className="h-screen bg-gray-100 flex flex-col">
-      {/* Top bar med profilbillede upload */}
-      <div className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
-          {/* Room name in header */}
-          <h1 className="text-lg font-semibold text-gray-800">{room?.name}</h1>
+      {/* Top bar med profilbillede upload - Full width */}
+      <div className="bg-white shadow-sm w-full">
+        <div className="px-4 py-4 flex justify-between items-center">
+          {/* Logo on the left */}
+          <div className="flex items-center">
+            <img
+              src={estimerLogo}
+              alt="Estimer Logo"
+              className="h-12 object-contain"
+            />
+          </div>
+
           <div className="flex items-center space-x-4">
             {/* Invite others button */}
-            <InviteButton roomId={roomId} />
+            <InviteButton roomId={roomId} t={t} />
             {/* Sound toggle button */}
             <button
               onClick={() => setSoundEnabled(!soundEnabled)}
-              className={`p-2 rounded-lg transition-colors ${
-                soundEnabled
-                  ? "bg-purple-100 text-purple-600 hover:bg-purple-200"
-                  : "bg-gray-100 text-gray-400 hover:bg-gray-200"
+              className={`px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors flex items-center gap-2 text-sm font-medium ${
+                soundEnabled ? "text-purple-600" : "text-gray-400"
               }`}
               title={soundEnabled ? "Disable sounds" : "Enable sounds"}
             >
-              {soundEnabled ? "🔊" : "🔇"}
+              {soundEnabled ? (
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M9 12a3 3 0 003-3V7a3 3 0 00-6 0v2a3 3 0 003 3zm3 0a3 3 0 003-3V7a3 3 0 00-6 0v2a3 3 0 003 3z"
+                  />
+                </svg>
+              ) : (
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"
+                  />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2"
+                  />
+                </svg>
+              )}
+              {t("gameRoom.sound")}
             </button>
+            {/* Language switcher */}
+            <LanguageSwitcher />
             <ProfileImageUpload onImageUpdated={handleProfileImageUpdate} />
             <div className="flex items-center space-x-2">
               {room?.participants.find((p) => p.id === userId)
                 ?.profile_image ? (
                 <img
-                  src={`${
-                    import.meta.env.VITE_API_BASE_URL || "http://localhost:8080"
-                  }${
+                  src={getImageSrc(
                     room.participants.find((p) => p.id === userId)
                       ?.profile_image
-                  }`}
+                  )}
                   alt="Profile"
                   className="w-8 h-8 rounded-full object-cover"
                 />
@@ -1002,12 +1151,15 @@ const GameRoom: React.FC = () => {
                 <span className="text-gray-700">
                   {room?.participants.find((p) => p.id === userId)?.username}
                 </span>
-                <button
-                  onClick={logout}
-                  className="px-3 py-1 bg-gray-200 text-gray-700 text-sm rounded hover:bg-gray-300 transition"
-                >
-                  Log ud
-                </button>
+                {/* Only show logout button for authenticated users, not guests */}
+                {user && (
+                  <button
+                    onClick={logout}
+                    className="px-3 py-1 bg-gray-200 text-gray-700 text-sm rounded hover:bg-gray-300 transition"
+                  >
+                    {t("gameRoom.logOut")}
+                  </button>
+                )}
               </div>
             </div>
           </div>
@@ -1015,33 +1167,46 @@ const GameRoom: React.FC = () => {
       </div>
 
       {error && (
-        <div className="p-4 bg-red-100 text-red-700 rounded-lg">{error}</div>
+        <div className="px-4 py-2 bg-red-100 text-red-700 rounded-lg mx-4 mt-2">
+          {error}
+        </div>
       )}
 
       {/* Main content area - fills remaining height */}
-
       <div className="flex flex-1">
         {/* Left Sidebar - Voted Users */}
         <div className="w-64 bg-white border-r border-gray-200 p-4 overflow-y-auto relative">
+          {/* Room Title */}
+          <div className="mb-6 pb-4 border-b border-gray-200">
+            <h2 className="text-xl font-bold text-gray-800 truncate">
+              {room?.name}
+            </h2>
+          </div>
+
           {/* Waiting Section */}
-          {room?.current_story && isVotingOpen && (
+          {((room?.current_story && isVotingOpen) || !room?.current_story) && (
             <div className="mb-6">
               <h3 className="text-lg font-semibold mb-4 text-gray-600 flex items-center gap-2">
-                <span>⏳</span> Waiting
+                <span>⏳</span> {t("gameRoom.waiting")}
                 <span className="bg-gray-200 text-gray-700 text-xs px-2 py-1 rounded-full">
-                  {
-                    room.participants.filter(
-                      (p) =>
-                        !room?.current_story?.votes?.some(
-                          (v) => v.user_id === p.id
-                        )
-                    ).length
-                  }
+                  {!room?.current_story
+                    ? room?.participants.length || 0
+                    : room.participants.filter(
+                        (p) =>
+                          !room?.current_story?.votes?.some(
+                            (v) => v.user_id === p.id
+                          )
+                      ).length}
                 </span>
               </h3>
               <div className="space-y-3">
-                {room.participants
+                {room?.participants
                   .filter((participant) => {
+                    // If no current story, show everyone in waiting
+                    if (!room?.current_story) {
+                      return true;
+                    }
+                    // If there is a current story, show only those who haven't voted
                     const hasVoted =
                       room?.current_story?.votes?.some(
                         (v) => v.user_id === participant.id
@@ -1059,10 +1224,7 @@ const GameRoom: React.FC = () => {
                       <div className="relative">
                         {participant.profile_image ? (
                           <img
-                            src={`${
-                              import.meta.env.VITE_API_BASE_URL ||
-                              "http://localhost:8080"
-                            }${participant.profile_image}`}
+                            src={getImageSrc(participant.profile_image)}
                             alt={participant.username}
                             className="w-8 h-8 rounded-full object-cover"
                           />
@@ -1089,82 +1251,79 @@ const GameRoom: React.FC = () => {
           )}
 
           {/* Voted Section */}
-          <div>
-            <h3 className="text-lg font-semibold mb-4 text-purple-600 flex items-center gap-2">
-              <span>✓</span> Voted
-              <span className="bg-purple-200 text-purple-700 text-xs px-2 py-1 rounded-full">
-                {room?.current_story && (isVotingOpen || showResults)
-                  ? room.current_story.votes.length
-                  : room?.participants.length || 0}
-              </span>
-            </h3>
-            <div className="space-y-3">
-              {room?.participants
-                .filter((participant) => {
-                  if (!room?.current_story || (!isVotingOpen && !showResults)) {
-                    return true; // Show everyone when not voting
-                  }
-                  const hasVoted =
-                    room?.current_story?.votes?.some(
+          {room?.current_story && (isVotingOpen || showResults) && (
+            <div>
+              <h3 className="text-lg font-semibold mb-4 text-purple-600 flex items-center gap-2">
+                <span>✓</span> {t("gameRoom.voted")}
+                <span className="bg-purple-200 text-purple-700 text-xs px-2 py-1 rounded-full">
+                  {room.current_story.votes.length}
+                </span>
+              </h3>
+              <div className="space-y-3">
+                {room.participants
+                  .filter((participant) => {
+                    const hasVoted =
+                      room?.current_story?.votes?.some(
+                        (v) => v.user_id === participant.id
+                      ) || false;
+                    return hasVoted;
+                  })
+                  .map((participant) => {
+                    const vote = room?.current_story?.votes?.find(
                       (v) => v.user_id === participant.id
-                    ) || false;
-                  return hasVoted;
-                })
-                .map((participant) => {
-                  const vote = room?.current_story?.votes?.find(
-                    (v) => v.user_id === participant.id
-                  );
+                    );
 
-                  return (
-                    <motion.div
-                      key={participant.id}
-                      initial={{ opacity: 0, x: 20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: -20 }}
-                      className="flex items-center space-x-3 p-2 rounded-lg bg-purple-50 border border-purple-200 hover:bg-purple-100 transition-colors"
-                    >
-                      <div className="relative">
-                        {participant.profile_image ? (
-                          <img
-                            src={`${
-                              import.meta.env.VITE_API_BASE_URL ||
-                              "http://localhost:8080"
-                            }${participant.profile_image}`}
-                            alt={participant.username}
-                            className="w-8 h-8 rounded-full object-cover"
-                          />
-                        ) : (
-                          <div className="w-8 h-8 rounded-full bg-purple-200 flex items-center justify-center">
-                            <span className="text-xs font-bold text-purple-600">
-                              {participant.username.charAt(0).toUpperCase()}
-                            </span>
-                          </div>
-                        )}
-                        {participant.id === room.admin_id && (
-                          <div className="absolute -top-1 -right-1 w-3 h-3 bg-purple-500 rounded-full"></div>
-                        )}
-                      </div>
-                      <div className="flex-1">
-                        <p className="text-sm font-medium text-gray-900">
-                          {participant.username}
-                        </p>
-                      </div>
-                      {room?.current_story && (isVotingOpen || showResults) && (
-                        <div className="text-sm">
-                          {showResults && vote ? (
-                            <span className="font-bold text-purple-600 bg-white px-2 py-1 rounded">
-                              {vote.value === -1 ? "?" : vote.value}
-                            </span>
+                    return (
+                      <motion.div
+                        key={participant.id}
+                        initial={{ opacity: 0, x: 20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: -20 }}
+                        className="flex items-center space-x-3 p-2 rounded-lg bg-purple-50 border border-purple-200 hover:bg-purple-100 transition-colors"
+                      >
+                        <div className="relative">
+                          {participant.profile_image ? (
+                            <img
+                              src={getImageSrc(participant.profile_image)}
+                              alt={participant.username}
+                              className="w-8 h-8 rounded-full object-cover"
+                            />
                           ) : (
-                            <span className="text-green-600 font-bold">✓</span>
+                            <div className="w-8 h-8 rounded-full bg-purple-200 flex items-center justify-center">
+                              <span className="text-xs font-bold text-purple-600">
+                                {participant.username.charAt(0).toUpperCase()}
+                              </span>
+                            </div>
+                          )}
+                          {participant.id === room.admin_id && (
+                            <div className="absolute -top-1 -right-1 w-3 h-3 bg-purple-500 rounded-full"></div>
                           )}
                         </div>
-                      )}
-                    </motion.div>
-                  );
-                })}
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-gray-900">
+                            {participant.username}
+                          </p>
+                        </div>
+                        {room?.current_story &&
+                          (isVotingOpen || showResults) && (
+                            <div className="text-sm">
+                              {showResults && vote ? (
+                                <span className="font-bold text-purple-600 bg-white px-2 py-1 rounded">
+                                  {vote.value === -1 ? "?" : vote.value}
+                                </span>
+                              ) : (
+                                <span className="text-green-600 font-bold">
+                                  ✓
+                                </span>
+                              )}
+                            </div>
+                          )}
+                      </motion.div>
+                    );
+                  })}
+              </div>
             </div>
-          </div>
+          )}
         </div>
 
         {/* Center - Main Content */}
@@ -1225,10 +1384,7 @@ const GameRoom: React.FC = () => {
                       >
                         {participant.profile_image ? (
                           <img
-                            src={`${
-                              import.meta.env.VITE_API_BASE_URL ||
-                              "http://localhost:8080"
-                            }${participant.profile_image}`}
+                            src={getImageSrc(participant.profile_image)}
                             alt={participant.username}
                             className="w-16 h-16 rounded-full object-cover border-4 border-purple-500 shadow-lg hover:scale-110 transition-transform duration-200"
                           />
@@ -1241,7 +1397,7 @@ const GameRoom: React.FC = () => {
                         )}
                         {participant.id === room.admin_id && (
                           <span className="absolute -top-1 -right-1 bg-purple-500 text-white text-xs px-2 py-0.5 rounded-full shadow-md">
-                            Admin
+                            {t("gameRoom.admin")}
                           </span>
                         )}
                         <div
@@ -1298,27 +1454,24 @@ const GameRoom: React.FC = () => {
                     room?.admin_id === userId && (
                       <button
                         onClick={endVoting}
-                        className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition text-sm font-medium animate-pulse"
+                        className="px-4 py-2 border border-gray-300 text-purple-600 rounded-lg hover:bg-gray-50 transition text-sm font-medium animate-pulse"
                       >
-                        Reveal votes
+                        {t("gameRoom.revealVotes")}
                       </button>
                     )}
                   {showResults && (
                     <div>
                       <h3 className="font-bold text-xl text-purple-600 mb-2">
-                        Results
+                        {t("gameRoom.results")}
                       </h3>
-                      <p className="text-sm text-gray-600">Voting completed</p>
+                      <p className="text-sm text-gray-600">
+                        {t("gameRoom.votingCompleted")}
+                      </p>
                     </div>
                   )}
                   {!isVotingOpen && !showResults && (
                     <div>
-                      <div className="flex items-center space-x-2 mb-2">
-                        <img
-                          src={estimerLogo}
-                          alt="Estimer Logo"
-                          className="w-6 h-6 object-contain"
-                        />
+                      <div>
                         <h3 className="font-bold text-xl text-purple-600">
                           Estimer
                         </h3>
@@ -1326,7 +1479,7 @@ const GameRoom: React.FC = () => {
                       <p className="text-sm text-gray-600">
                         {room?.current_story
                           ? "Ready to vote"
-                          : "Waiting for story"}
+                          : t("gameRoom.waitingForStory")}
                       </p>
                     </div>
                   )}
@@ -1381,7 +1534,7 @@ const GameRoom: React.FC = () => {
           {room?.current_story ? (
             <div className="mb-6">
               <h3 className="text-lg font-semibold mb-3 text-purple-600">
-                Current Story
+                {t("gameRoom.currentStory")}
               </h3>
               <div className="bg-purple-50 rounded-lg p-4 border border-purple-200">
                 <h4 className="font-medium text-gray-900 mb-2">
@@ -1411,14 +1564,14 @@ const GameRoom: React.FC = () => {
                       onClick={startVoting}
                       className="w-full px-3 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition text-sm"
                     >
-                      Start Voting
+                      {t("gameRoom.startVoting")}
                     </button>
                   )}
 
                 {isAdmin && showResults && (
                   <div className="space-y-2">
                     <label className="block text-xs font-medium text-gray-700">
-                      Final score:
+                      {t("gameRoom.finalScore")}:
                     </label>
                     <div className="flex gap-2">
                       <input
@@ -1433,9 +1586,9 @@ const GameRoom: React.FC = () => {
                       />
                       <button
                         onClick={saveFinalScore}
-                        className="px-3 py-1 bg-purple-600 text-white rounded hover:bg-purple-700 transition text-sm"
+                        className="px-3 py-1 border border-gray-300 text-purple-600 rounded hover:bg-gray-50 transition text-sm"
                       >
-                        Save
+                        {t("gameRoom.saveScore")}
                       </button>
                     </div>
                   </div>
@@ -1446,7 +1599,7 @@ const GameRoom: React.FC = () => {
             room?.admin_id === userId && (
               <div className="mb-6">
                 <h3 className="text-lg font-semibold mb-3 text-purple-600">
-                  Create Story
+                  {t("gameRoom.newStory")}
                 </h3>
                 <div className="space-y-3">
                   <input
@@ -1454,20 +1607,20 @@ const GameRoom: React.FC = () => {
                     value={newStoryTitle}
                     onChange={(e) => setNewStoryTitle(e.target.value)}
                     className="w-full p-2 text-sm border rounded focus:outline-none focus:ring-purple-500 focus:border-purple-500"
-                    placeholder="Story title..."
+                    placeholder={t("gameRoom.storyTitle")}
                   />
                   <textarea
                     value={newStoryDescription}
                     onChange={(e) => setNewStoryDescription(e.target.value)}
                     className="w-full p-2 text-sm border rounded h-20 resize-none focus:outline-none focus:ring-purple-500 focus:border-purple-500"
-                    placeholder="Description..."
+                    placeholder={t("gameRoom.storyDescription")}
                   />
                   <button
                     onClick={startNewStory}
                     disabled={!newStoryTitle}
                     className="w-full px-3 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:bg-gray-300 disabled:text-gray-500 transition text-sm"
                   >
-                    Create Story
+                    {t("gameRoom.createStory")}
                   </button>
                 </div>
               </div>
@@ -1477,7 +1630,7 @@ const GameRoom: React.FC = () => {
           {/* Completed Stories */}
           <div className="border-t-2 border-gray-200 pt-4">
             <h3 className="text-lg font-semibold mb-4 text-gray-800 flex items-center gap-2">
-              <span>📚</span> Completed Stories
+              <span>📚</span> {t("gameRoom.completedStories")}
               <span className="bg-gray-200 text-gray-600 text-xs px-2 py-1 rounded-full">
                 {completedStories.length}
               </span>
@@ -1508,7 +1661,9 @@ const GameRoom: React.FC = () => {
                       <span className="font-bold text-green-600 text-lg bg-white px-2 py-1 rounded-full border-2 border-green-200">
                         {story.final_score}
                       </span>
-                      <span className="text-xs text-gray-500 mt-1">points</span>
+                      <span className="text-xs text-gray-500 mt-1">
+                        {t("gameRoom.points")}
+                      </span>
                     </div>
                   </div>
                 </div>

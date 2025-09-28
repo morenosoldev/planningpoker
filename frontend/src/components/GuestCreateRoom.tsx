@@ -67,7 +67,7 @@ const GuestCreateRoom: React.FC = () => {
               id="username"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
               placeholder="Indtast dit navn"
               maxLength={50}
               required
@@ -86,7 +86,7 @@ const GuestCreateRoom: React.FC = () => {
               id="roomName"
               value={roomName}
               onChange={(e) => setRoomName(e.target.value)}
-              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
               placeholder="Indtast rum navn (f.eks. 'Sprint Planning')"
               maxLength={100}
               required
