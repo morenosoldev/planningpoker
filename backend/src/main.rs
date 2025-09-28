@@ -44,6 +44,29 @@ async fn main() -> std::io::Result<()> {
     }
     let db = client.database("planning_poker");
 
+    // Debug: Show current working directory
+    match std::env::current_dir() {
+        Ok(dir) => println!("Current working directory: {:?}", dir),
+        Err(e) => eprintln!("Could not get current directory: {:?}", e),
+    }
+
+    // Create uploads directory if it doesn't exist
+    match std::fs::create_dir_all("uploads") {
+        Ok(_) => {
+            println!("Uploads directory created/verified successfully");
+            // Check if we can write to it
+            match std::fs::metadata("uploads") {
+                Ok(metadata) =>
+                    println!("Uploads directory permissions: {:?}", metadata.permissions()),
+                Err(e) => eprintln!("Could not check uploads directory metadata: {:?}", e),
+            }
+        }
+        Err(e) => {
+            eprintln!("Error: Could not create uploads directory: {:?}", e);
+            eprintln!("This may cause profile image uploads to fail!");
+        }
+    }
+
     let game_server = GameServer::new();
     let game_server_addr = game_server.clone().start();
     *GAME_SERVER.lock().unwrap() = Some(game_server_addr.clone());

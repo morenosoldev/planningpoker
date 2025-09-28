@@ -13,10 +13,11 @@ COPY src ./src
 # Build the Rust application
 RUN cargo build --release
 
-RUN mkdir -p /myapp/uploads
+# Create uploads directory in the working directory
+RUN mkdir -p uploads
 
-# Expose port 8090 to the outside world
-EXPOSE 8090
+# Expose port 8080 to the outside world
+EXPOSE 8080
 
 # ✅ Copy the actual binary name to a predictable path
 RUN cp target/release/backend /usr/local/bin/voting-api
