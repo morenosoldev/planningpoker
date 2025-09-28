@@ -137,9 +137,8 @@ interface EmojiReaction {
 const GameRoom: React.FC = () => {
   const { roomId } = useParams<{ roomId: string }>();
   const location = useLocation();
-  const { token, user, guestUser, isGuest, logout } = useAuth();
+  const { token, user, guestUser, logout } = useAuth();
   const userId = user?.id || guestUser?.id || null;
-  const currentUser = user || guestUser;
   const [room, setRoom] = useState<GameRoomData | null>(null);
   const [error, setError] = useState<string>("");
   const [isConnected, setIsConnected] = useState(false);
