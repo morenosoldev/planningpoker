@@ -10,7 +10,10 @@ const RoomInvite: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [showGuestOption, setShowGuestOption] = useState(false);
-  const [roomInfo, setRoomInfo] = useState<{ invite_code: string; name: string } | null>(null);
+  const [roomInfo, setRoomInfo] = useState<{
+    invite_code: string;
+    name: string;
+  } | null>(null);
 
   // Debug logging
   console.log("=== RoomInvite Debug ===");
@@ -33,15 +36,26 @@ const RoomInvite: React.FC = () => {
   useEffect(() => {
     console.log("=== Auto-join useEffect ===");
     console.log("Checking conditions...");
-    console.log("roomId && token && isAuthenticated && !isGuest:", roomId && token && isAuthenticated && !isGuest);
-    console.log("roomId && !isAuthenticated && roomInfo:", roomId && !isAuthenticated && roomInfo);
-    console.log("roomId && isGuest && roomInfo:", roomId && isGuest && roomInfo);
-    
+    console.log(
+      "roomId && token && isAuthenticated && !isGuest:",
+      roomId && token && isAuthenticated && !isGuest
+    );
+    console.log(
+      "roomId && !isAuthenticated && roomInfo:",
+      roomId && !isAuthenticated && roomInfo
+    );
+    console.log(
+      "roomId && isGuest && roomInfo:",
+      roomId && isGuest && roomInfo
+    );
+
     if (roomId && token && isAuthenticated && !isGuest) {
       console.log("Auto-joining room for authenticated user");
       joinRoomById(roomId);
     } else if (roomId && roomInfo && (!isAuthenticated || isGuest)) {
-      console.log("Setting up guest option timer (user is not authenticated or is already a guest)");
+      console.log(
+        "Setting up guest option timer (user is not authenticated or is already a guest)"
+      );
       // Show guest option for non-authenticated users or existing guests
       const timer = setTimeout(() => {
         console.log("Setting showGuestOption to true");
@@ -69,9 +83,7 @@ const RoomInvite: React.FC = () => {
       setRoomInfo(data);
     } catch (err) {
       setError(
-        err instanceof Error
-          ? err.message
-          : "Kunne ikke hente rum information"
+        err instanceof Error ? err.message : "Kunne ikke hente rum information"
       );
     }
   };
@@ -127,19 +139,15 @@ const RoomInvite: React.FC = () => {
           <h2 className="text-2xl font-bold text-gray-900 mb-4">
             Tilslutter til rum...
           </h2>
-          
+
           {isLoading && (
             <div className="flex justify-center items-center py-4">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
             </div>
           )}
 
-          {error && (
-            <div className="text-red-600 text-sm mb-4">
-              {error}
-            </div>
-          )}
-          
+          {error && <div className="text-red-600 text-sm mb-4">{error}</div>}
+
           <p className="text-gray-600">
             Du bliver automatisk tilsluttet rummet...
           </p>
@@ -156,13 +164,14 @@ const RoomInvite: React.FC = () => {
         <h2 className="text-2xl font-bold text-gray-900 mb-4">
           Ugyldig invitation
         </h2>
-        
+
         <p className="text-gray-600 mb-6">
-          Invitationslinkket ser ud til at være ugyldigt eller ikke længere aktivt.
+          Invitationslinkket ser ud til at være ugyldigt eller ikke længere
+          aktivt.
         </p>
 
         <button
-          onClick={() => navigate('/')}
+          onClick={() => navigate("/")}
           className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
         >
           Gå til forsiden

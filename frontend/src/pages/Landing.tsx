@@ -82,15 +82,19 @@ export default function Landing() {
                   <div className="flex items-center space-x-2">
                     {user.profile_image ? (
                       <img
-                        src={`${import.meta.env.VITE_API_BASE_URL || "http://localhost:8080"}${user.profile_image}`}
+                        src={`${
+                          import.meta.env.VITE_API_BASE_URL ||
+                          "http://localhost:8080"
+                        }${user.profile_image}`}
                         alt={user.username}
                         className="w-8 h-8 rounded-full border-2 border-purple-200 object-cover"
                         onError={(e) => {
                           // Fallback to initial letter if image fails to load
                           const target = e.target as HTMLImageElement;
-                          target.style.display = 'none';
-                          const fallback = target.nextElementSibling as HTMLElement;
-                          if (fallback) fallback.style.display = 'flex';
+                          target.style.display = "none";
+                          const fallback =
+                            target.nextElementSibling as HTMLElement;
+                          if (fallback) fallback.style.display = "flex";
                         }}
                       />
                     ) : null}
@@ -147,7 +151,9 @@ export default function Landing() {
                 onClick={handleStartNow}
                 className="px-8 py-4 bg-gradient-to-r from-purple-600 to-blue-600 text-white text-lg font-semibold rounded-xl hover:from-purple-700 hover:to-blue-700 transform hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl"
               >
-                {user ? t("landing.hero.createRoom") : t("landing.hero.startPlanning")}
+                {user
+                  ? t("landing.hero.createRoom")
+                  : t("landing.hero.startPlanning")}
               </button>
               {!user && (
                 <div className="flex items-center space-x-6 text-sm text-gray-500">
@@ -599,26 +605,47 @@ export default function Landing() {
             </div>
 
             <p className="text-gray-600 mb-6 text-center">
-              Du kan bruge Planning Poker uden at oprette en konto. Vælg hvad du vil gøre:
+              Du kan bruge Planning Poker uden at oprette en konto. Vælg hvad du
+              vil gøre:
             </p>
 
             <div className="space-y-4">
               <button
-                onClick={() => navigate('/rooms/guest/create')}
+                onClick={() => navigate("/rooms/guest/create")}
                 className="w-full px-6 py-4 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg hover:from-purple-700 hover:to-blue-700 transition-all duration-200 font-medium flex items-center justify-center"
               >
-                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                <svg
+                  className="w-5 h-5 mr-2"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                  />
                 </svg>
                 Opret nyt rum
               </button>
 
               <button
-                onClick={() => navigate('/rooms/guest/join')}
+                onClick={() => navigate("/rooms/guest/join")}
                 className="w-full px-6 py-4 border-2 border-purple-600 text-purple-600 rounded-lg hover:bg-purple-50 transition-all duration-200 font-medium flex items-center justify-center"
               >
-                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
+                <svg
+                  className="w-5 h-5 mr-2"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"
+                  />
                 </svg>
                 Tilslut til rum
               </button>
@@ -629,7 +656,7 @@ export default function Landing() {
                 Eller opret en konto for flere funktioner:
               </p>
               <button
-                onClick={() => navigate('/auth')}
+                onClick={() => navigate("/auth")}
                 className="w-full px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
               >
                 Log ind / Registrer

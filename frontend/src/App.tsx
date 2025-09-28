@@ -44,22 +44,10 @@ const App: React.FC = () => {
                 </AuthenticatedOrGuestRoute>
               }
             />
-            <Route
-              path="/join/:roomId"
-              element={<RoomInvite />}
-            />
-            <Route
-              path="/rooms/guest/create"
-              element={<GuestCreateRoom />}
-            />
-            <Route
-              path="/rooms/guest/join"
-              element={<GuestJoinByCode />}
-            />
-            <Route
-              path="/rooms/guest/join"
-              element={<GuestJoinByCode />}
-            />
+            <Route path="/join/:roomId" element={<RoomInvite />} />
+            <Route path="/rooms/guest/create" element={<GuestCreateRoom />} />
+            <Route path="/rooms/guest/join" element={<GuestJoinByCode />} />
+            <Route path="/rooms/guest/join" element={<GuestJoinByCode />} />
           </Routes>
         </div>
       </Router>

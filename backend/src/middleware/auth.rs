@@ -1,10 +1,6 @@
-use actix_web::{
-    error::ErrorUnauthorized,
-    http::header::AUTHORIZATION,
-    Error, HttpRequest,
-};
-use jsonwebtoken::{decode, DecodingKey, Validation, Algorithm};
-use serde::{Deserialize, Serialize};
+use actix_web::{ error::ErrorUnauthorized, http::header::AUTHORIZATION, Error, HttpRequest };
+use jsonwebtoken::{ decode, DecodingKey, Validation, Algorithm };
+use serde::{ Deserialize, Serialize };
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Claims {
@@ -15,7 +11,7 @@ pub struct Claims {
 pub async fn validate_token(req: HttpRequest) -> Result<String, Error> {
     println!("Validerer token...");
     println!("Headers: {:?}", req.headers());
-    
+
     let token = req
         .headers()
         .get(AUTHORIZATION)
@@ -34,23 +30,21 @@ pub async fn validate_token(req: HttpRequest) -> Result<String, Error> {
 
     println!("Token efter strip_prefix: {}", token);
 
-    let jwt_secret = std::env::var("JWT_SECRET")
-        .map_err(|e| {
-            println!("JWT_SECRET fejl: {:?}", e);
-            ErrorUnauthorized("JWT_SECRET er ikke konfigureret")
-        })?;
-    
+    let jwt_secret = std::env::var("JWT_SECRET").map_err(|e| {
+        println!("JWT_SECRET fejl: {:?}", e);
+        ErrorUnauthorized("JWT_SECRET er ikke konfigureret")
+    })?;
+
     println!("JWT_SECRET hentet fra env: {}", jwt_secret);
-    
+
     let mut validation = Validation::new(Algorithm::HS256);
     validation.validate_exp = true;
-    
+
     let token_data = decode::<Claims>(
         token,
         &DecodingKey::from_secret(jwt_secret.as_bytes()),
-        &validation,
-    )
-    .map_err(|e| {
+        &validation
+    ).map_err(|e| {
         println!("Token validering fejlede: {:?}", e);
         ErrorUnauthorized("Ugyldig token")
     })?;
@@ -62,13 +56,13 @@ pub async fn validate_token(req: HttpRequest) -> Result<String, Error> {
 // Optional token validation for guest users
 pub async fn validate_optional_token(req: HttpRequest) -> Result<Option<String>, Error> {
     let auth_header = req.headers().get(AUTHORIZATION);
-    
+
     if auth_header.is_none() {
         return Ok(None); // No token present, allow guest access
     }
-    
+
     match validate_token(req).await {
         Ok(user_id) => Ok(Some(user_id)),
         Err(_) => Ok(None), // Invalid token, treat as guest
     }
-} 
+}

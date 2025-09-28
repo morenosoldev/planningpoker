@@ -1,5 +1,5 @@
 use mongodb::bson::oid::ObjectId;
-use serde::{Deserialize, Serialize};
+use serde::{ Deserialize, Serialize };
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct User {
@@ -53,4 +53,4 @@ pub struct GuestUser {
 pub struct GuestJoinDto {
     pub username: String,
     pub room_code: String,
-} 
+}

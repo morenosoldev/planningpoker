@@ -143,7 +143,7 @@ const GameRoom: React.FC = () => {
   const [room, setRoom] = useState<GameRoomData | null>(null);
   const [error, setError] = useState<string>("");
   const [isConnected, setIsConnected] = useState(false);
-  
+
   // Handle initial room data for guest users from navigation state
   useEffect(() => {
     if (guestUser && location.state?.room && !room) {
@@ -314,7 +314,7 @@ const GameRoom: React.FC = () => {
           import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
         // Convert HTTP(S) URL to WebSocket URL
         const wsBaseUrl = apiBaseUrl.replace(/^https?:\/\//, `${protocol}//`);
-        
+
         // Use different endpoints for regular users vs guests
         let wsUrl;
         if (guestUser) {
@@ -324,7 +324,7 @@ const GameRoom: React.FC = () => {
           wsUrl = `${wsBaseUrl}/rooms/${roomId}/ws?token=${token}`;
           console.log("=== CREATING REGULAR WEBSOCKET CONNECTION ===");
         }
-        
+
         console.log("API Base URL:", apiBaseUrl);
         console.log("WebSocket URL:", wsUrl);
         const ws = new WebSocket(wsUrl);

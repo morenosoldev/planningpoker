@@ -38,8 +38,14 @@ interface AuthContextType {
     password: string,
     username: string
   ) => Promise<void>;
-  joinAsGuest: (username: string, roomCode: string) => Promise<{ room: any; guest_id: string }>;
-  createRoomAsGuest: (username: string, roomName: string) => Promise<{ room: any; guest_id: string }>;
+  joinAsGuest: (
+    username: string,
+    roomCode: string
+  ) => Promise<{ room: any; guest_id: string }>;
+  createRoomAsGuest: (
+    username: string,
+    roomName: string
+  ) => Promise<{ room: any; guest_id: string }>;
   setAuthToken: (token: string, user: User) => void;
   setGuestUser: (guestUser: GuestUser) => void;
   logout: () => void;
@@ -62,7 +68,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
   useEffect(() => {
     const session = localStorage.getItem("auth_session");
     const guestSession = localStorage.getItem("guest_session");
-    
+
     if (session) {
       try {
         const parsed = JSON.parse(session);
@@ -161,24 +167,27 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     setIsAuthenticated(true);
   };
 
-  const joinAsGuest = async (username: string, roomCode: string): Promise<{ room: any; guest_id: string }> => {
+  const joinAsGuest = async (
+    username: string,
+    roomCode: string
+  ): Promise<{ room: any; guest_id: string }> => {
     try {
       // Create a new axios instance without default Authorization header
       const guestAxios = axios.create({
         baseURL: axios.defaults.baseURL,
         headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        }
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
       });
-      
+
       const response = await guestAxios.post("/guest/join", {
         username,
         room_code: roomCode,
       });
 
       const { room, guest_id } = response.data;
-      
+
       const guestUserData: GuestUser = {
         id: guest_id,
         username,
@@ -189,7 +198,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
       const expiry = new Date().getTime() + 24 * 60 * 60 * 1000; // 24 hours
       const session = JSON.stringify({ guest: guestUserData, expiry });
       localStorage.setItem("guest_session", session);
-      
+
       setGuestUser(guestUserData);
       setIsGuest(true);
 
@@ -202,24 +211,27 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     }
   };
 
-  const createRoomAsGuest = async (username: string, roomName: string): Promise<{ room: any; guest_id: string }> => {
+  const createRoomAsGuest = async (
+    username: string,
+    roomName: string
+  ): Promise<{ room: any; guest_id: string }> => {
     try {
       // Create a new axios instance without default Authorization header
       const guestAxios = axios.create({
         baseURL: axios.defaults.baseURL,
         headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        }
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
       });
-      
+
       const response = await guestAxios.post("/guest/create", {
         username,
         room_name: roomName,
       });
 
       const { room, guest_id } = response.data;
-      
+
       const guestUserData: GuestUser = {
         id: guest_id,
         username,
@@ -230,14 +242,16 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
       const expiry = new Date().getTime() + 24 * 60 * 60 * 1000; // 24 hours
       const session = JSON.stringify({ guest: guestUserData, expiry });
       localStorage.setItem("guest_session", session);
-      
+
       setGuestUser(guestUserData);
       setIsGuest(true);
 
       return { room, guest_id };
     } catch (error) {
       if (axios.isAxiosError(error) && error.response) {
-        throw new Error(error.response.data.message || "Guest room creation fejlede");
+        throw new Error(
+          error.response.data.message || "Guest room creation fejlede"
+        );
       }
       throw new Error("Der opstod en fejl under guest room creation");
     }

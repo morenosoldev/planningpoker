@@ -1,5 +1,5 @@
 use mongodb::bson::oid::ObjectId;
-use serde::{Deserialize, Serialize};
+use serde::{ Deserialize, Serialize };
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -64,7 +64,7 @@ pub struct GameRoom {
     pub participants: Vec<String>, // User IDs
     pub current_story: Option<Story>,
     pub completed_stories: Vec<Story>,
-    pub stories: Vec<Story>,  // Alle historier (både aktive og afsluttede)
+    pub stories: Vec<Story>, // Alle historier (både aktive og afsluttede)
     pub created_at: i64,
     pub updated_at: i64,
 }
@@ -94,7 +94,7 @@ pub struct GameRoomResponse {
     pub participants: Vec<String>,
     pub current_story: Option<Story>,
     pub completed_stories: Vec<Story>,
-    pub stories: Vec<Story>,  // Alle historier (både aktive og afsluttede)
+    pub stories: Vec<Story>, // Alle historier (både aktive og afsluttede)
     pub created_at: i64,
     pub updated_at: i64,
-} 
+}

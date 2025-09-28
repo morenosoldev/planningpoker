@@ -10,9 +10,17 @@ use actix_web::{
 };
 use actix_web_actors::ws;
 use mongodb::Database;
-use crate::models::game_room::{ GameRoom, CreateRoomDto, JoinRoomDto, GuestCreateRoomDto, Story, Vote, CompletedStory };
-use crate::models::user::{User, GuestUser, GuestJoinDto};
-use crate::middleware::auth::{validate_token, validate_optional_token};
+use crate::models::game_room::{
+    GameRoom,
+    CreateRoomDto,
+    JoinRoomDto,
+    GuestCreateRoomDto,
+    Story,
+    Vote,
+    CompletedStory,
+};
+use crate::models::user::{ User, GuestUser, GuestJoinDto };
+use crate::middleware::auth::{ validate_token, validate_optional_token };
 use crate::websocket::{ WebSocketSession, GameServer, GameMessage, GAME_SERVER };
 use actix::Addr;
 use jsonwebtoken::{ decode, Validation, Algorithm, DecodingKey };
@@ -118,7 +126,7 @@ pub async fn join_room(
     println!("=== REGULAR JOIN ROOM ENDPOINT HIT ===");
     println!("Request path: {:?}", req.path());
     println!("Request method: {:?}", req.method());
-    
+
     let user_id = validate_token(req.clone()).await?;
 
     let collection = db.collection::<GameRoom>("game_rooms");
@@ -321,19 +329,23 @@ async fn get_participants_info(
     for id in participant_ids {
         if let Ok(object_id) = mongodb::bson::oid::ObjectId::parse_str(id) {
             // Try to find regular user first
-            if let Ok(Some(user)) = users_collection.find_one(
-                doc! { "_id": object_id },
-                None
-            ).await {
+            if
+                let Ok(Some(user)) = users_collection.find_one(
+                    doc! { "_id": object_id },
+                    None
+                ).await
+            {
                 participants_info.push(ParticipantInfo {
                     id: id.clone(),
                     username: user.username,
                     profile_image: user.profile_image,
                 });
-            } else if let Ok(Some(guest)) = guests_collection.find_one(
-                doc! { "_id": object_id },
-                None
-            ).await {
+            } else if
+                let Ok(Some(guest)) = guests_collection.find_one(
+                    doc! { "_id": object_id },
+                    None
+                ).await
+            {
                 participants_info.push(ParticipantInfo {
                     id: id.clone(),
                     username: guest.username,
@@ -809,7 +821,7 @@ pub async fn guest_room_ws(
     db: web::Data<Database>
 ) -> Result<HttpResponse> {
     let (room_id, guest_id) = path.into_inner();
-    
+
     println!("Guest WebSocket forbindelse for rum {} med guest ID: {}", room_id, guest_id);
 
     // Hent guest info
@@ -882,12 +894,16 @@ pub async fn get_room_info(
     };
 
     // Return basic room info that doesn't require authentication
-    Ok(HttpResponse::Ok().json(serde_json::json!({
+    Ok(
+        HttpResponse::Ok().json(
+            serde_json::json!({
         "id": room.id.unwrap().to_string(),
         "name": room.name,
         "invite_code": room.invite_code,
         "participant_count": room.participants.len()
-    })))
+    })
+        )
+    )
 }
 
 // Guest user endpoints
@@ -900,7 +916,7 @@ pub async fn guest_join_room(
     println!("=== GUEST JOIN ROOM ENDPOINT HIT ===");
     println!("Username: {}", join_data.username);
     println!("Room code: {}", join_data.room_code);
-    
+
     let collection = db.collection::<GameRoom>("game_rooms");
     let guests_collection = db.collection::<GuestUser>("guest_users");
 
@@ -985,11 +1001,15 @@ pub async fn guest_join_room(
     };
 
     // Return response with guest session info
-    Ok(HttpResponse::Ok().json(serde_json::json!({
+    Ok(
+        HttpResponse::Ok().json(
+            serde_json::json!({
         "room": room_response,
         "guest_id": guest_user_id,
         "is_guest": true
-    })))
+    })
+        )
+    )
 }
 
 #[post("/guest/create")]
@@ -1056,11 +1076,13 @@ pub async fn guest_create_room(
     };
 
     // Return response with guest session info
-    Ok(HttpResponse::Created().json(serde_json::json!({
+    Ok(
+        HttpResponse::Created().json(
+            serde_json::json!({
         "room": room_response,
         "guest_id": guest_user_id,
         "is_guest": true
-    })))
+    })
+        )
+    )
 }
-
-
